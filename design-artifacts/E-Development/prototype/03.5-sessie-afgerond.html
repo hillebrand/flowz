@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlowState — Session Done</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5' } } } }</script>
+  <link rel="manifest" href="manifest.json">
+  <script src="shared/app.js"></script>
+  <style>
+    @keyframes popIn { 0%{transform:scale(0.5);opacity:0} 70%{transform:scale(1.15)} 100%{transform:scale(1);opacity:1} }
+    .pop-in { animation: popIn 0.5s cubic-bezier(.175,.885,.32,1.275) forwards; }
+  </style>
+</head>
+<body class="bg-white min-h-screen flex flex-col">
+
+  <main class="flex-1 flex flex-col items-center justify-center px-6 py-10 max-w-sm mx-auto w-full text-center">
+
+    <div id="sessie-afgerond-bevestiging-beloning-emoji" class="text-7xl mb-6 pop-in">🎉</div>
+
+    <h1 id="sessie-afgerond-bevestiging-hoofd-boodschap"
+        class="text-2xl font-bold text-gray-900 mb-2">Sessie klaar!</h1>
+    <p id="sessie-afgerond-bevestiging-sessie-context"
+       class="text-sm text-gray-400 mb-6"></p>
+
+    <!-- Progress dots -->
+    <div class="bg-gray-50 rounded-2xl px-5 py-4 w-full mb-8">
+      <div id="session-dots" class="flex gap-2 justify-center mb-2"></div>
+      <p id="sessie-afgerond-bevestiging-voortgangsbalk" class="text-xs text-gray-400"></p>
+    </div>
+
+    <!-- Actions -->
+    <div class="w-full space-y-3">
+      <button id="sessie-afgerond-acties-pauze-starten-knop"
+              onclick="goBreak()"
+              class="w-full bg-primary hover:bg-primary-dark text-white font-semibold py-4 rounded-2xl shadow-lg shadow-indigo-200 transition-all active:scale-98">
+        Pauze nemen →
+      </button>
+      <button id="sessie-afgerond-acties-terug-naar-shortlist-knop"
+              onclick="goShortlist()"
+              class="w-full bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-4 rounded-2xl transition-all active:scale-98">
+        Terug naar vandaag
+      </button>
+    </div>
+
+  </main>
+
+  <script>
+    (async function() {
+      await FS.initData();
+      const params = new URLSearchParams(window.location.search);
+      const taskId = params.get('id');
+
+      const data = FS.loadData();
+      const task = data.tasks.find(t => t.id === taskId);
+      if (!task) { window.location.href = '02.2-shortlist-vandaag.html'; return; }
+
+      const done = task.sessions_done;
+      const total = task.sessions_total;
+      const allDone = done >= total;
+
+      if (allDone) {
+        document.getElementById('sessie-afgerond-bevestiging-beloning-emoji').textContent = '🏆';
+        document.getElementById('sessie-afgerond-bevestiging-hoofd-boodschap').textContent = 'Taak voltooid! 🏆';
+      }
+
+      document.getElementById('sessie-afgerond-bevestiging-sessie-context').textContent =
+        `${task.title} · Sessie ${done} van ${total}`;
+
+      document.getElementById('sessie-afgerond-bevestiging-voortgangsbalk').textContent =
+        `${done} van ${total} sessie${total !== 1 ? 's' : ''} gedaan`;
+
+      document.getElementById('session-dots').innerHTML =
+        Array.from({ length: total }, (_, i) =>
+          `<div class="w-4 h-4 rounded-full ${i < done ? 'bg-primary' : 'bg-gray-200'}"></div>`
+        ).join('');
+
+      // Store taskId for break page
+      sessionStorage.setItem('last_task_id', taskId);
+    })();
+
+    function goBreak() {
+      window.location.href = '03.6-pauzetimer.html';
+    }
+    function goShortlist() {
+      window.location.href = '02.2-shortlist-vandaag.html';
+    }
+  </script>
+</body>
+</html>

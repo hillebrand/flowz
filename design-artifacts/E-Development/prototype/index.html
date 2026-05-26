@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlowState</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            primary: '#6366f1',
+            'primary-dark': '#4f46e5',
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="manifest" href="manifest.json">
+  <script src="shared/app.js"></script>
+</head>
+<body class="bg-white">
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js');
+    }
+
+    // Smart entry: send user to right place
+    (async function() {
+      await FS.initData();
+      if (!FS.isSetupDone()) {
+        window.location.href = '01.1-welkomst.html';
+      } else {
+        const energy = FS.getTodayEnergy();
+        if (!energy) {
+          window.location.href = '02.1-energie-check-in.html';
+        } else {
+          window.location.href = '02.2-shortlist-vandaag.html';
+        }
+      }
+    })();
+  </script>
+  <div class="flex items-center justify-center h-screen">
+    <div class="text-center text-gray-400">
+      <div class="text-4xl mb-2">✦</div>
+      <p class="text-sm">FlowState laden…</p>
+    </div>
+  </div>
+</body>
+</html>

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlowState — Session</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5' } } } }</script>
+  <link rel="manifest" href="manifest.json">
+  <script src="shared/app.js"></script>
+  <style>
+    .timer-ring { transform: rotate(-90deg); transform-origin: 50% 50%; }
+    @keyframes fadeInUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+    .fade-in { animation: fadeInUp 0.3s ease; }
+  </style>
+</head>
+<body class="bg-white min-h-screen flex flex-col select-none">
+
+  <!-- Compact task header -->
+  <div class="flex items-center justify-between px-5 py-3 border-b border-gray-100 bg-white">
+    <span id="actieve-sessie-sessie-header-taaknaam-compact" class="text-xs font-medium text-gray-600 truncate max-w-[180px]"></span>
+    <span id="actieve-sessie-sessie-header-sessienummer-compact" class="text-xs text-gray-400 flex-shrink-0"></span>
+  </div>
+
+  <main class="flex-1 flex flex-col items-center justify-between px-6 py-8 max-w-sm mx-auto w-full">
+
+    <!-- Timer section -->
+    <div class="flex flex-col items-center">
+      <div class="relative w-52 h-52 mb-4">
+        <svg class="w-full h-full" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="44" fill="none" stroke="#f3f4f6" stroke-width="8"/>
+          <circle id="timer-ring" class="timer-ring" cx="50" cy="50" r="44" fill="none"
+                  stroke="#6366f1" stroke-width="8" stroke-linecap="round"
+                  stroke-dasharray="276.46" stroke-dashoffset="0"/>
+        </svg>
+        <div class="absolute inset-0 flex flex-col items-center justify-center">
+          <span id="actieve-sessie-timer-pomodoro-ring-timer"
+                class="text-4xl font-bold text-gray-900 font-mono tabular-nums"></span>
+        </div>
+      </div>
+      <p class="text-xs text-gray-400 uppercase tracking-wider">Tijd over</p>
+    </div>
+
+    <!-- Current subtask -->
+    <div id="subtask-container" class="w-full fade-in">
+      <p class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3 text-center">Huidige deeltaak</p>
+      <label id="subtask-row" class="flex items-start gap-3 bg-indigo-50 rounded-2xl px-4 py-4 cursor-pointer">
+        <input type="checkbox" id="subtask-check" onchange="checkSubtask()"
+               class="accent-primary w-5 h-5 mt-0.5 rounded flex-shrink-0">
+        <span id="subtask-title" class="text-sm font-medium text-gray-800 leading-snug"></span>
+      </label>
+    </div>
+    <div id="no-subtask" class="hidden text-center text-sm text-gray-300 italic">Geen deeltaken</div>
+
+    <!-- Finish early -->
+    <button onclick="finishEarly()"
+            class="text-sm text-gray-400 hover:text-primary transition-colors py-2 underline underline-offset-2">
+      Vroeg afronden
+    </button>
+
+  </main>
+
+  <script>
+    let taskId = null;
+    let totalSeconds = 0;
+    let remaining = 0;
+    let timerInterval = null;
+    const CIRCUMFERENCE = 2 * Math.PI * 44; // ≈ 276.46
+
+    (async function() {
+      await FS.initData();
+      const params = new URLSearchParams(window.location.search);
+      taskId = params.get('id');
+      if (!taskId) { history.back(); return; }
+
+      const data = FS.loadData();
+      const task = data.tasks.find(t => t.id === taskId);
+      if (!task) { history.back(); return; }
+
+      const sessionNum = task.sessions_done + 1;
+      document.getElementById('actieve-sessie-sessie-header-taaknaam-compact').textContent = task.title;
+      document.getElementById('actieve-sessie-sessie-header-sessienummer-compact').textContent = `Sessie ${sessionNum}`;
+
+      // Duration from settings
+      const settings = data.settings || {};
+      totalSeconds = (settings.session_length_min || 45) * 60;
+      remaining = totalSeconds;
+
+      updateDisplay();
+      renderCurrentSubtask(task);
+      timerInterval = setInterval(tick, 1000);
+    })();
+
+    function tick() {
+      remaining--;
+      if (remaining <= 0) {
+        remaining = 0;
+        clearInterval(timerInterval);
+        updateDisplay();
+        setTimeout(completeSession, 500);
+      } else {
+        updateDisplay();
+      }
+    }
+
+    function updateDisplay() {
+      const m = Math.floor(remaining / 60);
+      const s = remaining % 60;
+      document.getElementById('actieve-sessie-timer-pomodoro-ring-timer').textContent =
+        `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+
+      const ring = document.getElementById('timer-ring');
+      const progress = remaining / totalSeconds;
+      ring.style.strokeDashoffset = CIRCUMFERENCE * (1 - progress);
+
+      // Color: green → yellow → red
+      if (progress > 0.5) ring.style.stroke = '#6366f1';
+      else if (progress > 0.25) ring.style.stroke = '#f59e0b';
+      else ring.style.stroke = '#ef4444';
+    }
+
+    function renderCurrentSubtask(task) {
+      const pending = (task.subtasks || []).filter(s => !s.done);
+      if (pending.length === 0) {
+        document.getElementById('subtask-container').classList.add('hidden');
+        document.getElementById('no-subtask').classList.remove('hidden');
+        return;
+      }
+      document.getElementById('subtask-title').textContent = pending[0].title;
+      document.getElementById('subtask-check').checked = false;
+      document.getElementById('subtask-container').classList.remove('hidden');
+      document.getElementById('no-subtask').classList.add('hidden');
+    }
+
+    function checkSubtask() {
+      const data = FS.loadData();
+      const task = data.tasks.find(t => t.id === taskId);
+      if (!task) return;
+
+      const pending = task.subtasks.filter(s => !s.done);
+      if (pending.length === 0) return;
+      pending[0].done = true;
+      FS.saveData(data);
+
+      // Animate and show next
+      const row = document.getElementById('subtask-row');
+      row.classList.add('opacity-0', 'transition-opacity', 'duration-300');
+      setTimeout(() => {
+        renderCurrentSubtask(task);
+        row.classList.remove('opacity-0');
+      }, 350);
+    }
+
+    function finishEarly() {
+      clearInterval(timerInterval);
+      completeSession();
+    }
+
+    function completeSession() {
+      // Mark session as done
+      const data = FS.loadData();
+      const task = data.tasks.find(t => t.id === taskId);
+      if (task && task.sessions_done < task.sessions_total) {
+        task.sessions_done++;
+        if (task.sessions_done >= task.sessions_total) task.status = 'done';
+        data.sessions_log = data.sessions_log || [];
+        data.sessions_log.push({ task_id: taskId, date: new Date().toISOString().slice(0, 10) });
+        const today = new Date().toISOString().slice(0, 10);
+        if (!data.study_days) data.study_days = [];
+        if (!data.study_days.includes(today)) data.study_days.push(today);
+        FS.saveData(data);
+      }
+      FS.clearActiveSession();
+      window.location.href = `03.5-sessie-afgerond.html?id=${taskId}`;
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlowState — Taak aanmaken</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5' } } } }</script>
+  <link rel="manifest" href="manifest.json">
+  <script src="shared/app.js"></script>
+</head>
+<body class="bg-white min-h-screen flex flex-col">
+
+  <header class="flex items-center px-4 py-4 border-b border-gray-100">
+    <div class="w-12"></div>
+    <span class="flex-1 text-center font-bold text-gray-900">✦ FlowState</span>
+    <div class="w-12"></div>
+  </header>
+
+  <main class="flex-1 px-6 py-6 max-w-sm mx-auto w-full overflow-y-auto">
+
+    <!-- Voortgang wachtrij -->
+    <p id="taak-aanmaken-voortgang-wachtrij-indicator"
+       class="text-xs text-gray-400 text-center mb-6"></p>
+
+    <!-- Section: Basisgegevens -->
+    <div class="space-y-4 mb-6">
+      <div>
+        <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Taaknaam</label>
+        <input id="taak-aanmaken-basisgegevens-taaknaam-veld"
+               type="text"
+               class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary">
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Omschrijving <span class="text-gray-300 font-normal normal-case">(optioneel)</span></label>
+        <textarea id="taak-aanmaken-basisgegevens-omschrijving-veld"
+                  rows="2"
+                  placeholder="Specifieke instructies, leerdoelen, ..."
+                  class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary resize-none"></textarea>
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Vak</label>
+        <select id="taak-aanmaken-basisgegevens-vak-selector"
+                class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary bg-white">
+          <option>English</option><option>Math</option><option>History</option>
+          <option>Biology</option><option>Physics</option><option>Chemistry</option>
+          <option>Dutch</option><option>French</option><option>German</option><option>Other</option>
+        </select>
+      </div>
+      <div>
+        <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Deadline</label>
+        <input id="taak-aanmaken-basisgegevens-deadline-input"
+               type="date"
+               class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary">
+      </div>
+    </div>
+
+    <!-- Section: Verrijking -->
+    <div class="space-y-5 mb-6">
+      <!-- Sessions stepper -->
+      <div>
+        <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Sessies nodig</label>
+        <div class="flex items-center gap-4">
+          <button onclick="changeSessions(-1)"
+                  class="w-10 h-10 rounded-full border border-gray-300 text-gray-600 text-xl flex items-center justify-center hover:border-primary hover:text-primary transition-colors">−</button>
+          <span id="taak-aanmaken-verrijking-sessies-stepper"
+                class="text-2xl font-semibold text-gray-900 w-8 text-center">1</span>
+          <button onclick="changeSessions(1)"
+                  class="w-10 h-10 rounded-full border border-gray-300 text-gray-600 text-xl flex items-center justify-center hover:border-primary hover:text-primary transition-colors">+</button>
+        </div>
+      </div>
+
+      <!-- Complexity -->
+      <div>
+        <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Complexiteit</label>
+        <div id="taak-aanmaken-verrijking-complexiteit-selector" class="flex gap-2">
+          <button onclick="setComplexity('low')" data-v="low"
+                  class="complexity-btn flex-1 py-2.5 rounded-xl border text-sm font-medium transition-all border-gray-200 text-gray-500">Laag</button>
+          <button onclick="setComplexity('medium')" data-v="medium"
+                  class="complexity-btn flex-1 py-2.5 rounded-xl border text-sm font-medium transition-all border-primary bg-primary/10 text-primary">Gemiddeld</button>
+          <button onclick="setComplexity('high')" data-v="high"
+                  class="complexity-btn flex-1 py-2.5 rounded-xl border text-sm font-medium transition-all border-gray-200 text-gray-500">Hoog</button>
+        </div>
+      </div>
+
+      <!-- Priority -->
+      <div>
+        <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Prioriteit</label>
+        <div id="taak-aanmaken-verrijking-prioriteit-selector" class="flex gap-2">
+          <button onclick="setPriority('low')" data-p="low"
+                  class="priority-btn flex-1 py-2.5 rounded-xl border text-sm font-medium transition-all border-gray-200 text-gray-500">🔵 Laag</button>
+          <button onclick="setPriority('normal')" data-p="normal"
+                  class="priority-btn flex-1 py-2.5 rounded-xl border text-sm font-medium transition-all border-primary bg-primary/10 text-primary">⚪ Normaal</button>
+          <button onclick="setPriority('high')" data-p="high"
+                  class="priority-btn flex-1 py-2.5 rounded-xl border text-sm font-medium transition-all border-gray-200 text-gray-500">🔴 Hoog</button>
+        </div>
+      </div>
+
+      <!-- Subtasks -->
+      <div>
+        <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Deeltaken <span class="normal-case font-normal text-gray-400">(optioneel)</span></label>
+        <div id="subtask-list" class="space-y-2 mb-2"></div>
+        <button id="taak-aanmaken-verrijking-subtaak-toevoegen"
+                onclick="addSubtask()"
+                class="text-sm text-primary hover:text-primary-dark flex items-center gap-1 transition-colors">
+          + Deeltaak toevoegen…
+        </button>
+      </div>
+
+      <!-- Materials -->
+      <div>
+        <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Benodigdheden <span class="normal-case font-normal text-gray-400">(optioneel)</span></label>
+        <div id="material-list" class="flex flex-wrap gap-2 mb-2"></div>
+        <button id="taak-aanmaken-verrijking-benodigdheden-toevoegen"
+                onclick="addMaterial()"
+                class="text-sm text-primary hover:text-primary-dark flex items-center gap-1 transition-colors">
+          + Benodigdheid toevoegen…
+        </button>
+      </div>
+    </div>
+
+    <!-- Section: Acties -->
+    <div class="space-y-3 pb-8">
+      <button id="taak-aanmaken-acties-opslaan-knop"
+              onclick="saveTask()"
+              class="w-full bg-primary hover:bg-primary-dark text-white font-semibold py-4 px-6 rounded-2xl transition-all shadow-lg shadow-indigo-200">
+        <span id="save-btn-label">Opslaan →</span>
+      </button>
+      <button onclick="cancelTask()"
+              class="w-full text-sm text-red-400 hover:text-red-600 py-2 transition-colors">
+        Annuleren
+      </button>
+    </div>
+
+  </main>
+
+  <script>
+    let queue = [];
+    let queueIndex = 0;
+    let currentTaskId = null;
+    let sessions = 1;
+    let complexity = 'medium';
+    let priority = 'normal';
+    let subtasks = [];
+    let materials = [];
+
+    (async function() {
+      await FS.initData();
+      const queueRaw = sessionStorage.getItem('enrichment_queue');
+      if (!queueRaw) { window.location.href = '01.5-takenoverzicht.html'; return; }
+      queue = JSON.parse(queueRaw);
+      loadTask();
+    })();
+
+    function loadTask() {
+      if (queueIndex >= queue.length) {
+        FS.markSetupDone();
+        // Go to shortlist if daily routine, otherwise overview
+        window.location.href = FS.getTodayEnergy() ? '02.2-shortlist-vandaag.html' : '01.5-takenoverzicht.html';
+        return;
+      }
+      currentTaskId = queue[queueIndex];
+      const data = FS.loadData();
+      const task = data.tasks.find(t => t.id === currentTaskId);
+      if (!task) { queueIndex++; loadTask(); return; }
+
+      // Reset state
+      sessions = task.sessions_total || 1;
+      complexity = task.complexity || 'medium';
+      priority = task.priority || 'normal';
+      subtasks = [...(task.subtasks || [])];
+      materials = [...(task.materials || [])];
+
+      // Fill form
+      document.getElementById('taak-aanmaken-basisgegevens-taaknaam-veld').value = task.title;
+      const subjectSel = document.getElementById('taak-aanmaken-basisgegevens-vak-selector');
+      for (let opt of subjectSel.options) if (opt.value === task.subject) { opt.selected = true; break; }
+      const deadlineInput = document.getElementById('taak-aanmaken-basisgegevens-deadline-input');
+      deadlineInput.value = task.deadline || '';
+      deadlineInput.min = new Date().toISOString().slice(0, 10);
+      document.getElementById('taak-aanmaken-verrijking-sessies-stepper').textContent = sessions;
+      updateComplexityUI();
+      updatePriorityUI();
+      renderSubtasks();
+      renderMaterials();
+
+      // Progress indicator
+      const total = queue.length;
+      const isLast = queueIndex === total - 1;
+      document.getElementById('taak-aanmaken-voortgang-wachtrij-indicator').textContent =
+        total > 1 ? `Taak ${queueIndex + 1} van ${total}` : '';
+      document.getElementById('save-btn-label').textContent =
+        (total > 1 && !isLast) ? 'Opslaan & volgende →' : 'Opslaan →';
+    }
+
+    function changeSessions(delta) {
+      sessions = Math.max(1, Math.min(10, sessions + delta));
+      document.getElementById('taak-aanmaken-verrijking-sessies-stepper').textContent = sessions;
+    }
+
+    function setComplexity(v) {
+      complexity = v;
+      updateComplexityUI();
+    }
+
+    function updateComplexityUI() {
+      document.querySelectorAll('.complexity-btn').forEach(btn => {
+        const active = btn.dataset.v === complexity;
+        btn.className = 'complexity-btn flex-1 py-2.5 rounded-xl border text-sm font-medium transition-all ' +
+          (active ? 'border-primary bg-primary/10 text-primary' : 'border-gray-200 text-gray-500');
+      });
+    }
+
+    function setPriority(v) {
+      priority = v;
+      updatePriorityUI();
+    }
+
+    function updatePriorityUI() {
+      document.querySelectorAll('.priority-btn').forEach(btn => {
+        const active = btn.dataset.p === priority;
+        btn.className = 'priority-btn flex-1 py-2.5 rounded-xl border text-sm font-medium transition-all ' +
+          (active ? 'border-primary bg-primary/10 text-primary' : 'border-gray-200 text-gray-500');
+      });
+    }
+
+    function addSubtask() {
+      const title = prompt('Deeltaaknaam:');
+      if (!title?.trim()) return;
+      subtasks.push({ id: 'sub_' + Date.now(), title: title.trim(), done: false });
+      renderSubtasks();
+    }
+
+    function renderSubtasks() {
+      document.getElementById('subtask-list').innerHTML = subtasks.map((s, i) => `
+        <div class="flex items-center gap-2 text-sm text-gray-700">
+          <span class="text-gray-400">•</span>
+          <span class="flex-1">${s.title}</span>
+          <button onclick="removeSubtask(${i})" class="text-gray-300 hover:text-red-400 text-xs">✕</button>
+        </div>
+      `).join('');
+    }
+
+    function removeSubtask(i) { subtasks.splice(i, 1); renderSubtasks(); }
+
+    function addMaterial() {
+      const m = prompt('Benodigdheid (bijv. boek, rekenmachine):');
+      if (!m?.trim()) return;
+      materials.push(m.trim());
+      renderMaterials();
+    }
+
+    function renderMaterials() {
+      document.getElementById('material-list').innerHTML = materials.map((m, i) => `
+        <span class="inline-flex items-center gap-1 bg-gray-100 text-gray-600 text-xs px-3 py-1.5 rounded-full">
+          ${m}
+          <button onclick="removeMaterial(${i})" class="text-gray-400 hover:text-red-400 ml-1">✕</button>
+        </span>
+      `).join('');
+    }
+
+    function removeMaterial(i) { materials.splice(i, 1); renderMaterials(); }
+
+    function saveTask() {
+      const data = FS.loadData();
+      const task = data.tasks.find(t => t.id === currentTaskId);
+      if (task) {
+        task.title = document.getElementById('taak-aanmaken-basisgegevens-taaknaam-veld').value.trim() || task.title;
+        task.description = document.getElementById('taak-aanmaken-basisgegevens-omschrijving-veld').value.trim();
+        task.subject = document.getElementById('taak-aanmaken-basisgegevens-vak-selector').value;
+        task.deadline = document.getElementById('taak-aanmaken-basisgegevens-deadline-input').value || task.deadline;
+        task.sessions_total = sessions;
+        task.complexity = complexity;
+        task.priority = priority;
+        task.subtasks = subtasks;
+        task.materials = materials;
+        task.needs_enrichment = false;
+        FS.saveData(data);
+      }
+      queueIndex++;
+      loadTask();
+    }
+
+    function cancelTask() {
+      // Discard unsaved changes — navigate back without deleting the task
+      // Clean up empty tasks (title still blank) that were just created via FAB
+      const data = FS.loadData();
+      const task = data.tasks.find(t => t.id === currentTaskId);
+      if (task && !task.title.trim() && task.needs_enrichment) {
+        // Truly empty new task — safe to remove
+        data.tasks = data.tasks.filter(t => t.id !== currentTaskId);
+        FS.saveData(data);
+      }
+      window.location.href = FS.getTodayEnergy() ? '02.2-shortlist-vandaag.html' : '01.5-takenoverzicht.html';
+    }
+  </script>
+</body>
+</html>

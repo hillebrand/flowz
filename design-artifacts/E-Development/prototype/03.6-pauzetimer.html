@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlowState — Break</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5' } } } }</script>
+  <link rel="manifest" href="manifest.json">
+  <script src="shared/app.js"></script>
+  <style>
+    .timer-ring { transform: rotate(-90deg); transform-origin: 50% 50%; }
+  </style>
+</head>
+<body class="bg-white min-h-screen flex flex-col">
+
+  <main class="flex-1 flex flex-col items-center justify-between px-6 py-10 max-w-sm mx-auto w-full">
+
+    <div class="text-center">
+      <h1 class="text-2xl font-bold text-gray-900 mb-1">Pauze!</h1>
+      <p class="text-sm text-gray-400">Je hebt het verdiend 🌿</p>
+    </div>
+
+    <!-- Break timer -->
+    <div class="flex flex-col items-center">
+      <div class="relative w-52 h-52 mb-4">
+        <svg class="w-full h-full" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="44" fill="none" stroke="#f0fdf4" stroke-width="8"/>
+          <circle id="break-ring" class="timer-ring" cx="50" cy="50" r="44" fill="none"
+                  stroke="#22c55e" stroke-width="8" stroke-linecap="round"
+                  stroke-dasharray="276.46" stroke-dashoffset="0"/>
+        </svg>
+        <div class="absolute inset-0 flex flex-col items-center justify-center">
+          <span id="pauzetimer-timer-pauze-ring-timer"
+                class="text-4xl font-bold text-gray-900 font-mono tabular-nums"></span>
+        </div>
+      </div>
+      <p class="text-xs text-gray-400 uppercase tracking-wider">Pauze over</p>
+    </div>
+
+    <div class="text-center space-y-4">
+      <p class="text-xs text-gray-400 max-w-xs">
+        Je gaat vanzelf terug naar vandaag als de timer op nul staat — of sla over als je al klaar bent.
+      </p>
+      <button onclick="skipBreak()"
+              class="text-sm text-gray-400 hover:text-primary transition-colors underline underline-offset-2">
+        Pauze overslaan
+      </button>
+    </div>
+
+  </main>
+
+  <script>
+    let totalSeconds = 0;
+    let remaining = 0;
+    let timerInterval = null;
+    const CIRCUMFERENCE = 2 * Math.PI * 44;
+
+    (async function() {
+      const data = await FS.initData();
+      const settings = data.settings || {};
+      totalSeconds = (settings.break_length_min || 10) * 60;
+      remaining = totalSeconds;
+      updateDisplay();
+      timerInterval = setInterval(tick, 1000);
+    })();
+
+    function tick() {
+      remaining--;
+      if (remaining <= 0) {
+        remaining = 0;
+        clearInterval(timerInterval);
+        updateDisplay();
+        setTimeout(() => { window.location.href = '02.2-shortlist-vandaag.html'; }, 800);
+      } else {
+        updateDisplay();
+      }
+    }
+
+    function updateDisplay() {
+      const m = Math.floor(remaining / 60);
+      const s = remaining % 60;
+      document.getElementById('pauzetimer-timer-pauze-ring-timer').textContent =
+        `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+      const ring = document.getElementById('break-ring');
+      ring.style.strokeDashoffset = CIRCUMFERENCE * (1 - remaining / totalSeconds);
+    }
+
+    function skipBreak() {
+      clearInterval(timerInterval);
+      window.location.href = '02.2-shortlist-vandaag.html';
+    }
+  </script>
+</body>
+</html>

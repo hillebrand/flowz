@@ -1,0 +1,142 @@
+{
+  "tasks": [
+    {
+      "id": "t1",
+      "title": "Essay Engels",
+      "subject": "English",
+      "description": "Schrijf een betoog van minimaal 500 woorden over klimaatverandering. Gebruik minstens 3 bronnen en voeg een bronnenlijst toe.",
+      "deadline": "2026-05-26",
+      "sessions_total": 3,
+      "sessions_done": 1,
+      "complexity": "high",
+      "priority": "high",
+      "subtasks": [
+        { "id": "s1", "title": "Bronnen zoeken", "done": true },
+        { "id": "s2", "title": "Opzet schrijven", "done": false },
+        { "id": "s3", "title": "Essay schrijven", "done": false },
+        { "id": "s4", "title": "Nalezen", "done": false }
+      ],
+      "materials": ["leerboek", "aantekeningen"],
+      "status": "in_progress",
+      "source": "magister",
+      "magister_id": "mg_001",
+      "created_at": "2026-05-23"
+    },
+    {
+      "id": "t2",
+      "title": "Wiskundeopgaven hoofdstuk 5",
+      "subject": "Math",
+      "description": "Opgaven 5.1 t/m 5.4 — vectoren en matrices. Let op: toon altijd de tussenberekening.",
+      "deadline": "2026-05-28",
+      "sessions_total": 2,
+      "sessions_done": 0,
+      "complexity": "medium",
+      "priority": "normal",
+      "subtasks": [
+        { "id": "s8", "title": "Paragraaf 5.1 en 5.2", "done": false },
+        { "id": "s9", "title": "Paragraaf 5.3 en 5.4", "done": false }
+      ],
+      "materials": ["rekenmachine", "schrift"],
+      "status": "pending",
+      "source": "magister",
+      "magister_id": "mg_002",
+      "created_at": "2026-05-23"
+    },
+    {
+      "id": "t3",
+      "title": "Samenvatting Geschiedenis hfst 8",
+      "subject": "History",
+      "description": "Samenvatting van hoofdstuk 8: De Tweede Wereldoorlog. Maximaal 2 A4. Gebruik de koppen uit het boek als structuur.",
+      "deadline": "2026-05-30",
+      "sessions_total": 1,
+      "sessions_done": 0,
+      "complexity": "low",
+      "priority": "normal",
+      "subtasks": [],
+      "materials": ["leerboek"],
+      "status": "pending",
+      "source": "magister",
+      "magister_id": "mg_003",
+      "created_at": "2026-05-23"
+    },
+    {
+      "id": "t4",
+      "title": "Biologie werkstuk — ecosystemen",
+      "subject": "Biology",
+      "description": "Kies een ecosysteem naar keuze en beschrijf voedselketens, producenten, consumenten en decomposers. Minimaal 4 pagina's inclusief afbeeldingen.",
+      "deadline": "2026-06-06",
+      "sessions_total": 4,
+      "sessions_done": 0,
+      "complexity": "high",
+      "priority": "low",
+      "subtasks": [
+        { "id": "s5", "title": "Ecosysteem kiezen", "done": false },
+        { "id": "s6", "title": "Onderzoek doen", "done": false },
+        { "id": "s7", "title": "Verslag schrijven", "done": false }
+      ],
+      "materials": ["leerboek"],
+      "status": "pending",
+      "source": "manual",
+      "magister_id": null,
+      "created_at": "2026-05-23"
+    },
+    {
+      "id": "t5",
+      "title": "Toets Scheikunde — hoofdstuk 6",
+      "subject": "Chemistry",
+      "description": "Leer atoombouw, moleculen en chemische bindingen. Maak ook de oefentoets achter in het boek.",
+      "deadline": "2026-05-27",
+      "sessions_total": 2,
+      "sessions_done": 0,
+      "complexity": "high",
+      "priority": "high",
+      "subtasks": [
+        { "id": "s10", "title": "Atoombouw herhalen", "done": false },
+        { "id": "s11", "title": "Oefentoets maken", "done": false }
+      ],
+      "materials": ["leerboek", "aantekeningen", "woordenlijst"],
+      "status": "pending",
+      "source": "magister",
+      "magister_id": "mg_005",
+      "created_at": "2026-05-24"
+    },
+    {
+      "id": "t6",
+      "title": "Boekverslag Nederlands",
+      "subject": "Dutch",
+      "description": "Boekverslag over 'De aanslag' van Harry Mulisch. Gebruik het format van de docent (zie Magister).",
+      "deadline": "2026-06-12",
+      "sessions_total": 3,
+      "sessions_done": 0,
+      "complexity": "medium",
+      "priority": "normal",
+      "subtasks": [
+        { "id": "s12", "title": "Boek uitlezen", "done": false },
+        { "id": "s13", "title": "Aantekeningen verwerken", "done": false },
+        { "id": "s14", "title": "Verslag schrijven", "done": false }
+      ],
+      "materials": ["boek 'De aanslag'"],
+      "status": "pending",
+      "source": "magister",
+      "magister_id": "mg_006",
+      "created_at": "2026-05-24"
+    }
+  ],
+  "settings": {
+    "shortlist_size": 3,
+    "session_length_min": 45,
+    "break_length_min": 10,
+    "reminder_enabled": true,
+    "reminder_time": "18:00",
+    "magister_connected": false,
+    "magister_email": null,
+    "blocked_days": {
+      "recurring": ["saturday", "sunday"],
+      "specific": ["2026-05-29"]
+    }
+  },
+  "sessions_log": [
+    { "task_id": "t1", "date": "2026-05-22" }
+  ],
+  "study_days": ["2026-05-19", "2026-05-20", "2026-05-21", "2026-05-22", "2026-05-23"]
+}

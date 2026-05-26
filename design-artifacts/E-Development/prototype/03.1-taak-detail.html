@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlowState — Task Detail</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5' } } } }</script>
+  <link rel="manifest" href="manifest.json">
+  <script src="shared/app.js"></script>
+</head>
+<body class="bg-white min-h-screen flex flex-col">
+
+  <header class="flex items-center px-4 py-4 border-b border-gray-100">
+    <button onclick="history.back()" class="text-gray-500 hover:text-gray-800 text-sm font-medium flex items-center gap-1 w-16">← Terug</button>
+    <span class="flex-1 text-center font-bold text-gray-900">✦ FlowState</span>
+    <button id="taak-detail-bewerken-header-bewerk-knop"
+            onclick="toggleEdit()"
+            class="text-sm text-primary font-medium w-16 text-right">✏ Bewerken</button>
+  </header>
+
+  <main class="flex-1 px-6 py-6 max-w-sm mx-auto w-full overflow-y-auto pb-10">
+
+    <!-- Section: Taak Info -->
+    <div class="mb-6">
+      <div class="flex items-start justify-between gap-2 mb-1">
+        <h1 id="taak-detail-bewerken-taak-info-taaknaam"
+            class="text-xl font-semibold text-gray-900 flex-1"></h1>
+        <span id="urgency-dot" class="text-xl mt-0.5"></span>
+      </div>
+      <p id="taak-detail-bewerken-taak-info-vak-en-deadline"
+         class="text-sm text-gray-400"></p>
+      <p id="taak-detail-bewerken-taak-info-omschrijving"
+         class="text-sm text-gray-600 mt-2 leading-relaxed"></p>
+
+      <!-- Edit form (hidden by default) -->
+      <div id="edit-form" class="hidden mt-4 space-y-4">
+        <!-- Basisvelden -->
+        <div>
+          <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Taaknaam</label>
+          <input id="edit-title" type="text" class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary">
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Omschrijving <span class="normal-case font-normal text-gray-300">(optioneel)</span></label>
+          <textarea id="edit-description" rows="2" placeholder="Specifieke instructies, leerdoelen, ..." class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary resize-none"></textarea>
+        </div>
+        <div>
+          <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Deadline</label>
+          <input id="edit-deadline" type="date" class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary">
+        </div>
+
+        <!-- Sessies stepper -->
+        <div>
+          <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Sessies nodig</label>
+          <div class="flex items-center gap-4">
+            <button onclick="changeEditSessions(-1)"
+                    class="w-10 h-10 rounded-full border border-gray-300 text-gray-600 text-xl flex items-center justify-center hover:border-primary hover:text-primary transition-colors">−</button>
+            <span id="edit-sessions-count" class="text-2xl font-semibold text-gray-900 w-8 text-center">1</span>
+            <button onclick="changeEditSessions(1)"
+                    class="w-10 h-10 rounded-full border border-gray-300 text-gray-600 text-xl flex items-center justify-center hover:border-primary hover:text-primary transition-colors">+</button>
+          </div>
+        </div>
+
+        <!-- Complexiteit -->
+        <div>
+          <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Complexiteit</label>
+          <div class="flex gap-2">
+            <button onclick="setEditComplexity('low')" data-v="low"
+                    class="edit-complexity-btn flex-1 py-2.5 rounded-xl border text-sm font-medium transition-all border-gray-200 text-gray-500">Laag</button>
+            <button onclick="setEditComplexity('medium')" data-v="medium"
+                    class="edit-complexity-btn flex-1 py-2.5 rounded-xl border text-sm font-medium transition-all border-gray-200 text-gray-500">Gemiddeld</button>
+            <button onclick="setEditComplexity('high')" data-v="high"
+                    class="edit-complexity-btn flex-1 py-2.5 rounded-xl border text-sm font-medium transition-all border-gray-200 text-gray-500">Hoog</button>
+          </div>
+        </div>
+
+        <!-- Prioriteit -->
+        <div>
+          <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Prioriteit</label>
+          <div class="flex gap-2">
+            <button onclick="setEditPriority('low')" data-p="low"
+                    class="edit-priority-btn flex-1 py-2.5 rounded-xl border text-sm font-medium transition-all border-gray-200 text-gray-500">🔵 Laag</button>
+            <button onclick="setEditPriority('normal')" data-p="normal"
+                    class="edit-priority-btn flex-1 py-2.5 rounded-xl border text-sm font-medium transition-all border-gray-200 text-gray-500">⚪ Normaal</button>
+            <button onclick="setEditPriority('high')" data-p="high"
+                    class="edit-priority-btn flex-1 py-2.5 rounded-xl border text-sm font-medium transition-all border-gray-200 text-gray-500">🔴 Hoog</button>
+          </div>
+        </div>
+
+        <!-- Deeltaken -->
+        <div>
+          <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Deeltaken <span class="normal-case font-normal text-gray-300">(optioneel)</span></label>
+          <div id="edit-subtask-list" class="space-y-2 mb-2"></div>
+          <button onclick="addEditSubtask()"
+                  class="text-sm text-primary hover:text-primary-dark flex items-center gap-1 transition-colors">+ Deeltaak toevoegen…</button>
+        </div>
+
+        <!-- Benodigdheden -->
+        <div>
+          <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Benodigdheden <span class="normal-case font-normal text-gray-300">(optioneel)</span></label>
+          <div id="edit-material-list" class="flex flex-wrap gap-2 mb-2"></div>
+          <button onclick="addEditMaterial()"
+                  class="text-sm text-primary hover:text-primary-dark flex items-center gap-1 transition-colors">+ Benodigdheid toevoegen…</button>
+        </div>
+
+        <button onclick="saveEdit()" class="w-full bg-primary text-white text-sm font-semibold py-3 rounded-xl">Wijzigingen opslaan</button>
+        <button onclick="deleteTask()" class="w-full text-sm text-red-400 hover:text-red-600 py-2 transition-colors">🗑 Taak verwijderen</button>
+      </div>
+    </div>
+
+    <!-- Section: Voortgang -->
+    <div class="bg-gray-50 rounded-2xl px-4 py-4 mb-6">
+      <div class="flex items-center justify-between mb-3">
+        <p id="taak-detail-bewerken-voortgang-sessie-voortgangsbalk"
+           class="text-sm font-medium text-gray-700"></p>
+      </div>
+      <!-- Dot progress bar -->
+      <div id="session-dots" class="flex gap-2 mb-4"></div>
+      <!-- Start session button -->
+      <button id="taak-detail-bewerken-voortgang-sessie-starten-knop"
+              onclick="startSession()"
+              class="w-full bg-primary hover:bg-primary-dark text-white font-semibold py-3 rounded-xl text-sm transition-all active:scale-98 mb-2">
+        ▶ Sessie starten
+      </button>
+      <button id="taak-detail-bewerken-voortgang-sessie-loggen-knop"
+              onclick="logSession()"
+              class="w-full text-xs text-gray-400 hover:text-primary transition-colors py-2">
+        + Handmatig sessie registreren
+      </button>
+    </div>
+
+    <!-- Section: Subtaken -->
+    <div id="subtask-section" class="mb-6">
+      <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Deeltaken</h3>
+      <div id="subtask-list" class="space-y-2"></div>
+      <div id="no-subtasks" class="hidden text-xs text-gray-300 italic">Geen deeltaken toegevoegd</div>
+    </div>
+
+    <!-- Section: Benodigdheden -->
+    <div id="materials-section" class="mb-6">
+      <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Benodigdheden</h3>
+      <div id="materials-list" class="flex flex-wrap gap-2"></div>
+      <div id="no-materials" class="hidden text-xs text-gray-300 italic">Geen benodigdheden toegevoegd</div>
+    </div>
+
+  </main>
+
+  <script>
+    let taskId = null;
+    let editing = false;
+    let editSessions = 1;
+    let editComplexity = 'medium';
+    let editPriority = 'normal';
+    let editSubtasks = [];
+    let editMaterials = [];
+
+    (async function() {
+      await FS.initData();
+      const params = new URLSearchParams(window.location.search);
+      taskId = params.get('id');
+      if (!taskId) { history.back(); return; }
+      renderTask();
+    })();
+
+    function renderTask() {
+      const data = FS.loadData();
+      const task = data.tasks.find(t => t.id === taskId);
+      if (!task) { history.back(); return; }
+
+      // Taak info
+      document.getElementById('taak-detail-bewerken-taak-info-taaknaam').textContent = task.title;
+      document.getElementById('taak-detail-bewerken-taak-info-vak-en-deadline').textContent =
+        `${task.subject} · Inleveren ${FS.formatDeadline(task.deadline)}`;
+
+      const urgency = FS.getUrgency(task.deadline);
+      const urgencyDot = document.getElementById('urgency-dot');
+      urgencyDot.textContent = urgency === 'urgent' ? '🔴' : urgency === 'this_week' ? '🟡' : '🟢';
+      // Remove previously injected priority badge if re-rendering
+      const existingBadge = document.getElementById('priority-badge');
+      if (existingBadge) existingBadge.remove();
+
+      // Omschrijving
+      const descEl = document.getElementById('taak-detail-bewerken-taak-info-omschrijving');
+      descEl.classList.remove('hidden');
+      if (task.description) {
+        descEl.textContent = task.description;
+      } else {
+        descEl.classList.add('hidden');
+      }
+
+      // Sessie voortgang
+      const done = task.sessions_done;
+      const total = task.sessions_total;
+      document.getElementById('taak-detail-bewerken-voortgang-sessie-voortgangsbalk').textContent =
+        `${done} van ${total} sessie${total !== 1 ? 's' : ''} gedaan`;
+
+      // Prioriteit badge
+      const prio = task.priority || 'normal';
+      const prioLabel = prio === 'high' ? ' 🔴 Hoog' : prio === 'low' ? ' 🔵 Laag' : '';
+      if (prioLabel) {
+        const badge = document.createElement('span');
+        badge.id = 'priority-badge';
+        badge.className = 'text-xs font-medium ml-2 ' + (prio === 'high' ? 'text-red-500' : 'text-blue-400');
+        badge.textContent = prioLabel;
+        urgencyDot.insertAdjacentElement('afterend', badge);
+      }
+
+      const startBtn = document.getElementById('taak-detail-bewerken-voortgang-sessie-starten-knop');
+      const logBtn = document.getElementById('taak-detail-bewerken-voortgang-sessie-loggen-knop');
+      if (done >= total) {
+        startBtn.disabled = true;
+        startBtn.textContent = 'Alle sessies afgerond ✓';
+        startBtn.className = 'w-full bg-gray-100 text-gray-400 font-semibold py-3 rounded-xl text-sm cursor-not-allowed mb-2';
+        logBtn.classList.add('hidden');
+      } else {
+        startBtn.disabled = false;
+        startBtn.textContent = '▶ Sessie starten';
+        startBtn.className = 'w-full bg-primary hover:bg-primary-dark text-white font-semibold py-3 rounded-xl text-sm transition-all active:scale-98 mb-2';
+        logBtn.classList.remove('hidden');
+      }
+
+      // Dots
+      document.getElementById('session-dots').innerHTML = Array.from({ length: total }, (_, i) =>
+        `<div class="w-4 h-4 rounded-full ${i < done ? 'bg-primary' : 'bg-gray-200'}"></div>`
+      ).join('');
+
+      // Subtaken
+      const subtaskList = document.getElementById('subtask-list');
+      const noSub = document.getElementById('no-subtasks');
+      if (!task.subtasks || task.subtasks.length === 0) {
+        subtaskList.innerHTML = '';
+        noSub.classList.remove('hidden');
+      } else {
+        noSub.classList.add('hidden');
+        subtaskList.innerHTML = task.subtasks.map((s, i) => `
+          <label class="flex items-center gap-3 cursor-pointer group">
+            <input type="checkbox" ${s.done ? 'checked' : ''}
+                   onchange="toggleSubtask(${i})"
+                   class="accent-primary w-4 h-4 rounded">
+            <span class="text-sm text-gray-700 ${s.done ? 'line-through text-gray-400' : ''}">${s.title}</span>
+          </label>
+        `).join('');
+      }
+
+      // Benodigdheden
+      const matList = document.getElementById('materials-list');
+      const noMat = document.getElementById('no-materials');
+      if (!task.materials || task.materials.length === 0) {
+        matList.innerHTML = '';
+        noMat.classList.remove('hidden');
+      } else {
+        noMat.classList.add('hidden');
+        matList.innerHTML = task.materials.map(m =>
+          `<span class="bg-gray-100 text-gray-600 text-xs px-3 py-1.5 rounded-full">${m}</span>`
+        ).join('');
+      }
+    }
+
+    function startSession() {
+      const data = FS.loadData();
+      const task = data.tasks.find(t => t.id === taskId);
+      if (!task || task.sessions_done >= task.sessions_total) return;
+      FS.setActiveSession(taskId, task.sessions_done + 1);
+      window.location.href = `03.3-sessie-voorbereiding.html?id=${taskId}`;
+    }
+
+    function logSession() {
+      const data = FS.loadData();
+      const task = data.tasks.find(t => t.id === taskId);
+      if (!task || task.sessions_done >= task.sessions_total) return;
+      task.sessions_done++;
+      data.sessions_log = data.sessions_log || [];
+      data.sessions_log.push({ task_id: taskId, date: new Date().toISOString().slice(0, 10) });
+      const today = new Date().toISOString().slice(0, 10);
+      if (!data.study_days) data.study_days = [];
+      if (!data.study_days.includes(today)) data.study_days.push(today);
+      FS.saveData(data);
+      renderTask();
+    }
+
+    function toggleSubtask(index) {
+      const data = FS.loadData();
+      const task = data.tasks.find(t => t.id === taskId);
+      if (!task) return;
+      task.subtasks[index].done = !task.subtasks[index].done;
+      FS.saveData(data);
+      renderTask();
+    }
+
+    function toggleEdit() {
+      editing = !editing;
+      const form = document.getElementById('edit-form');
+      const btn = document.getElementById('taak-detail-bewerken-header-bewerk-knop');
+      const subtaskSection = document.getElementById('subtask-section');
+      const materialsSection = document.getElementById('materials-section');
+
+      if (editing) {
+        const data = FS.loadData();
+        const task = data.tasks.find(t => t.id === taskId);
+        // Populate form fields
+        document.getElementById('edit-title').value = task.title;
+        document.getElementById('edit-description').value = task.description || '';
+        document.getElementById('edit-deadline').value = task.deadline;
+        editSessions = task.sessions_total || 1;
+        editComplexity = task.complexity || 'medium';
+        editPriority = task.priority || 'normal';
+        editSubtasks = (task.subtasks || []).map(s => ({ ...s }));
+        editMaterials = [...(task.materials || [])];
+        document.getElementById('edit-sessions-count').textContent = editSessions;
+        updateEditComplexityUI();
+        updateEditPriorityUI();
+        renderEditSubtasks();
+        renderEditMaterials();
+        form.classList.remove('hidden');
+        subtaskSection.classList.add('hidden');
+        materialsSection.classList.add('hidden');
+        btn.textContent = '✕ Annuleren';
+      } else {
+        form.classList.add('hidden');
+        subtaskSection.classList.remove('hidden');
+        materialsSection.classList.remove('hidden');
+        btn.textContent = '✏ Bewerken';
+      }
+    }
+
+    function changeEditSessions(delta) {
+      editSessions = Math.max(1, Math.min(10, editSessions + delta));
+      document.getElementById('edit-sessions-count').textContent = editSessions;
+    }
+
+    function setEditComplexity(v) {
+      editComplexity = v;
+      updateEditComplexityUI();
+    }
+
+    function updateEditComplexityUI() {
+      document.querySelectorAll('.edit-complexity-btn').forEach(btn => {
+        const active = btn.dataset.v === editComplexity;
+        btn.className = 'edit-complexity-btn flex-1 py-2.5 rounded-xl border text-sm font-medium transition-all ' +
+          (active ? 'border-primary bg-primary/10 text-primary' : 'border-gray-200 text-gray-500');
+      });
+    }
+
+    function setEditPriority(v) {
+      editPriority = v;
+      updateEditPriorityUI();
+    }
+
+    function updateEditPriorityUI() {
+      document.querySelectorAll('.edit-priority-btn').forEach(btn => {
+        const active = btn.dataset.p === editPriority;
+        btn.className = 'edit-priority-btn flex-1 py-2.5 rounded-xl border text-sm font-medium transition-all ' +
+          (active ? 'border-primary bg-primary/10 text-primary' : 'border-gray-200 text-gray-500');
+      });
+    }
+
+    function addEditSubtask() {
+      const title = prompt('Deeltaaknaam:');
+      if (!title?.trim()) return;
+      editSubtasks.push({ id: 'sub_' + Date.now(), title: title.trim(), done: false });
+      renderEditSubtasks();
+    }
+
+    function renderEditSubtasks() {
+      document.getElementById('edit-subtask-list').innerHTML = editSubtasks.map((s, i) => `
+        <div class="flex items-center gap-2 text-sm text-gray-700">
+          <span class="text-gray-400">•</span>
+          <span class="flex-1">${s.title}</span>
+          <button onclick="removeEditSubtask(${i})" class="text-gray-300 hover:text-red-400 text-xs transition-colors">✕</button>
+        </div>
+      `).join('');
+    }
+
+    function removeEditSubtask(i) { editSubtasks.splice(i, 1); renderEditSubtasks(); }
+
+    function addEditMaterial() {
+      const m = prompt('Benodigdheid (bijv. boek, rekenmachine):');
+      if (!m?.trim()) return;
+      editMaterials.push(m.trim());
+      renderEditMaterials();
+    }
+
+    function renderEditMaterials() {
+      document.getElementById('edit-material-list').innerHTML = editMaterials.map((m, i) => `
+        <span class="inline-flex items-center gap-1 bg-gray-100 text-gray-600 text-xs px-3 py-1.5 rounded-full">
+          ${m}
+          <button onclick="removeEditMaterial(${i})" class="text-gray-400 hover:text-red-400 ml-1 transition-colors">✕</button>
+        </span>
+      `).join('');
+    }
+
+    function removeEditMaterial(i) { editMaterials.splice(i, 1); renderEditMaterials(); }
+
+    function saveEdit() {
+      const data = FS.loadData();
+      const task = data.tasks.find(t => t.id === taskId);
+      if (!task) return;
+      task.title = document.getElementById('edit-title').value.trim() || task.title;
+      task.description = document.getElementById('edit-description').value.trim();
+      task.deadline = document.getElementById('edit-deadline').value || task.deadline;
+      task.sessions_total = editSessions;
+      task.complexity = editComplexity;
+      task.priority = editPriority;
+      // Preserve done-state of existing subtasks when title matches
+      task.subtasks = editSubtasks;
+      task.materials = editMaterials;
+      FS.saveData(data);
+      editing = false;
+      document.getElementById('edit-form').classList.add('hidden');
+      document.getElementById('subtask-section').classList.remove('hidden');
+      document.getElementById('materials-section').classList.remove('hidden');
+      document.getElementById('taak-detail-bewerken-header-bewerk-knop').textContent = '✏ Bewerken';
+      renderTask();
+    }
+
+    function deleteTask() {
+      if (!confirm('Taak verwijderen? Dit kan niet ongedaan worden gemaakt.')) return;
+      const data = FS.loadData();
+      data.tasks = data.tasks.filter(t => t.id !== taskId);
+      FS.saveData(data);
+      window.location.href = '01.5-takenoverzicht.html';
+    }
+  </script>
+</body>
+</html>

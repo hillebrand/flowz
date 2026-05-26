@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlowState — Progress</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5' } } } }</script>
+  <link rel="manifest" href="manifest.json">
+  <script src="shared/app.js"></script>
+  <script src="shared/nav.js"></script>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+
+  <header class="bg-white flex items-center px-4 py-4 border-b border-gray-100 sticky top-0 z-30">
+    <button onclick="openNav()" class="text-gray-600 hover:text-gray-900 text-xl w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors">☰</button>
+    <span class="flex-1 text-center font-bold text-gray-900">Mijn voortgang</span>
+    <div class="w-10"></div>
+  </header>
+
+  <main class="flex-1 px-4 py-6 max-w-sm mx-auto w-full">
+
+    <!-- Section: Streak -->
+    <div class="bg-white rounded-2xl px-5 py-5 shadow-sm border border-gray-100 mb-5 flex items-center gap-4">
+      <div class="text-4xl" id="voortgangsinzicht-streak-vuuremoji">🔥</div>
+      <div class="flex-1">
+        <div id="voortgangsinzicht-streak-streak-teller"
+             class="text-2xl font-bold text-gray-900"></div>
+        <div id="voortgangsinzicht-streak-streak-label"
+             class="text-sm text-gray-400"></div>
+      </div>
+      <!-- Milestone badge -->
+      <div id="milestone-badge" class="hidden bg-primary/10 text-primary text-xs px-3 py-1.5 rounded-full font-semibold"></div>
+    </div>
+
+    <!-- Section: Weekoverzicht -->
+    <div class="bg-white rounded-2xl px-5 py-5 shadow-sm border border-gray-100 mb-5">
+      <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-4">Deze week</h3>
+      <div id="voortgangsinzicht-weekoverzicht-dag-checkmarks" class="flex justify-between gap-1"></div>
+    </div>
+
+    <!-- Section: Totaalteller -->
+    <div class="bg-white rounded-2xl px-5 py-5 shadow-sm border border-gray-100 mb-5">
+      <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Totaal sessies</h3>
+      <div id="voortgangsinzicht-totaalteller-totaalsessies"
+           class="text-3xl font-bold text-primary mb-1"></div>
+      <div id="voortgangsinzicht-totaalteller-totaalsessies-label"
+           class="text-sm text-gray-400"></div>
+    </div>
+
+  </main>
+
+  <script>
+    injectNav('progress');
+
+    (async function() {
+      const data = await FS.initData();
+
+      // Streak
+      const streak = FS.calcStreak(data.study_days || []);
+      document.getElementById('voortgangsinzicht-streak-streak-teller').textContent =
+        `${streak} dag${streak !== 1 ? 'en' : ''}`;
+      document.getElementById('voortgangsinzicht-streak-streak-label').textContent =
+        streak === 0 ? 'Begin met studeren om je reeks te starten!' : 'huidige reeks 🚀';
+
+      // Milestone
+      const milestones = [3, 5, 7, 14, 21, 30, 50, 100];
+      const milestone = milestones.find(m => streak === m);
+      if (milestone) {
+        const badge = document.getElementById('milestone-badge');
+        badge.textContent = `${milestone}-daagse mijlpaal! 🏆`;
+        badge.classList.remove('hidden');
+      }
+
+      // Week overview
+      const today = new Date();
+      const days = ['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'];
+      const studyDays = new Set(data.study_days || []);
+
+      // Get Mon of this week
+      const monday = new Date(today);
+      monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+
+      const weekHtml = days.map((day, i) => {
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + i);
+        const dateStr = d.toISOString().slice(0, 10);
+        const isToday = dateStr === today.toISOString().slice(0, 10);
+        const studied = studyDays.has(dateStr);
+        const isFuture = d > today;
+        return `
+          <div class="flex flex-col items-center gap-1.5">
+            <div class="text-xs ${isToday ? 'font-bold text-primary' : 'text-gray-400'}">${day}</div>
+            <div class="w-8 h-8 rounded-full flex items-center justify-center text-base
+                        ${studied ? 'bg-primary text-white' : isFuture ? 'bg-gray-50 border border-dashed border-gray-200' : 'bg-gray-100 text-gray-300'}">
+              ${studied ? '✓' : isFuture ? '' : '·'}
+            </div>
+          </div>
+        `;
+      }).join('');
+      document.getElementById('voortgangsinzicht-weekoverzicht-dag-checkmarks').innerHTML = weekHtml;
+
+      // Totaal
+      const total = (data.sessions_log || []).length;
+      document.getElementById('voortgangsinzicht-totaalteller-totaalsessies').textContent = total;
+      document.getElementById('voortgangsinzicht-totaalteller-totaalsessies-label').textContent =
+        `studiesessie${total !== 1 ? 's' : ''} voltooid`;
+    })();
+  </script>
+</body>
+</html>

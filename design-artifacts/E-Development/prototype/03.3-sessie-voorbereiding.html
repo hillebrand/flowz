@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlowState — Get Ready</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5' } } } }</script>
+  <link rel="manifest" href="manifest.json">
+  <script src="shared/app.js"></script>
+</head>
+<body class="bg-white min-h-screen flex flex-col">
+
+  <header class="flex items-center px-4 py-4 border-b border-gray-100">
+    <button onclick="goBack()" class="text-gray-500 hover:text-gray-800 text-sm font-medium flex items-center gap-1">← Terug</button>
+    <span class="flex-1 text-center font-bold text-gray-900">✦ FlowState</span>
+    <div class="w-16"></div>
+  </header>
+
+  <main class="flex-1 px-6 py-10 max-w-sm mx-auto w-full flex flex-col">
+
+    <h1 class="text-3xl font-bold text-gray-900 mb-1">Klaar maken!</h1>
+    <p id="sessie-voorbereiding-taakoverzicht-taaknaam" class="text-lg font-semibold text-primary mb-1"></p>
+    <p id="sessie-voorbereiding-taakoverzicht-sessienummer" class="text-sm text-gray-400 mb-8"></p>
+
+    <!-- Benodigdheden -->
+    <div id="materials-section" class="mb-10">
+      <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-4">Je hebt nodig:</h3>
+      <ul id="materials-list" class="space-y-3"></ul>
+    </div>
+
+    <div id="no-materials-msg" class="hidden mb-10 text-sm text-gray-400 italic">
+      Geen benodigdheden — je kunt direct beginnen!
+    </div>
+
+    <!-- CTA -->
+    <div class="mt-auto">
+      <button id="sessie-voorbereiding-acties-starten-knop"
+              onclick="startSession()"
+              class="w-full bg-primary hover:bg-primary-dark text-white font-semibold py-4 rounded-2xl shadow-lg shadow-indigo-200 transition-all active:scale-98 text-base">
+        Let's go →
+      </button>
+    </div>
+
+  </main>
+
+  <script>
+    let taskId = null;
+
+    (async function() {
+      await FS.initData();
+      const params = new URLSearchParams(window.location.search);
+      taskId = params.get('id');
+      if (!taskId) { history.back(); return; }
+
+      const data = FS.loadData();
+      const task = data.tasks.find(t => t.id === taskId);
+      if (!task) { history.back(); return; }
+
+      const sessionNum = task.sessions_done + 1;
+      document.getElementById('sessie-voorbereiding-taakoverzicht-taaknaam').textContent = task.title;
+      document.getElementById('sessie-voorbereiding-taakoverzicht-sessienummer').textContent =
+        `Sessie ${sessionNum} van ${task.sessions_total}`;
+
+      const matList = document.getElementById('materials-list');
+      const matSection = document.getElementById('materials-section');
+      const noMat = document.getElementById('no-materials-msg');
+
+      const MATERIAL_EMOJI = {
+        'leerboek': '📖', 'boek': '📖', 'aantekeningen': '📝', 'schrift': '📝',
+        'rekenmachine': '🧮', 'woordenlijst': '📋', 'liniaal': '📐', 'calculator': '🧮'
+      };
+
+      if (!task.materials || task.materials.length === 0) {
+        matSection.classList.add('hidden');
+        noMat.classList.remove('hidden');
+      } else {
+        matList.innerHTML = task.materials.map(m => {
+          const emoji = MATERIAL_EMOJI[m.toLowerCase()] || '📌';
+          return `<li class="flex items-center gap-3 text-sm text-gray-700">
+            <span class="text-xl">${emoji}</span>
+            <span class="capitalize">${m}</span>
+          </li>`;
+        }).join('');
+      }
+    })();
+
+    function startSession() {
+      window.location.href = `03.4-actieve-sessie.html?id=${taskId}`;
+    }
+
+    function goBack() {
+      FS.clearActiveSession();
+      window.location.href = `03.1-taak-detail.html?id=${taskId}`;
+    }
+  </script>
+</body>
+</html>

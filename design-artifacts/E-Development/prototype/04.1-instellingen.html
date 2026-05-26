@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlowState — Settings</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5' } } } }</script>
+  <link rel="manifest" href="manifest.json">
+  <script src="shared/app.js"></script>
+  <script src="shared/nav.js"></script>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+
+  <header class="bg-white flex items-center px-4 py-4 border-b border-gray-100 sticky top-0 z-30">
+    <button onclick="openNav()" class="text-gray-600 hover:text-gray-900 text-xl w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors">☰</button>
+    <span class="flex-1 text-center font-bold text-gray-900">Instellingen</span>
+    <div class="w-10"></div>
+  </header>
+
+  <!-- Save toast -->
+  <div id="save-toast"
+       class="fixed top-4 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-xs px-4 py-2.5 rounded-full shadow-lg opacity-0 pointer-events-none transition-all duration-300 z-50">
+    ✓ Instellingen opgeslagen
+  </div>
+
+  <main class="flex-1 px-4 py-6 max-w-sm mx-auto w-full space-y-4">
+
+    <!-- Section: Magister -->
+    <div class="bg-white rounded-2xl px-5 py-5 shadow-sm border border-gray-100">
+      <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-4">Magister</h3>
+      <div id="magister-connected-state" class="hidden items-center justify-between">
+        <div>
+          <div id="instellingen-magister-verbinding-magister-account" class="text-sm font-medium text-gray-800"></div>
+          <div class="text-xs text-green-500 font-medium">✓ Verbonden</div>
+        </div>
+        <button id="instellingen-magister-verbinding-reconnect-knop"
+                onclick="goReconnect()"
+                class="text-xs text-primary border border-primary/30 px-3 py-1.5 rounded-xl hover:bg-primary/5">
+          Opnieuw verbinden
+        </button>
+      </div>
+      <div id="magister-disconnected-state" class="flex items-center justify-between">
+        <span class="text-sm text-gray-400">Niet verbonden</span>
+        <button onclick="goReconnect()"
+                class="text-xs bg-primary text-white px-4 py-2 rounded-xl font-medium">
+          Verbinden →
+        </button>
+      </div>
+    </div>
+
+    <!-- Section: Shortlist -->
+    <div class="bg-white rounded-2xl px-5 py-5 shadow-sm border border-gray-100">
+      <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-4">Dagelijks taaklimiet</h3>
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-sm text-gray-700">Taken per dag zichtbaar</span>
+        <span id="shortlist-val" class="text-sm font-bold text-primary">3</span>
+      </div>
+      <div class="flex items-center gap-3">
+        <input id="instellingen-studeersessie-shortlist-grootte-stepper"
+               type="range" min="1" max="5" value="3"
+               oninput="document.getElementById('shortlist-val').textContent = this.value"
+               class="flex-1 accent-primary">
+        <span class="text-xs text-gray-400 w-12 text-right">1 – 5</span>
+      </div>
+    </div>
+
+    <!-- Section: Sessieduur -->
+    <div class="bg-white rounded-2xl px-5 py-5 shadow-sm border border-gray-100">
+      <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-4">Studiesessies</h3>
+      <div class="flex items-center justify-between mb-3">
+        <span class="text-sm text-gray-700">Sessieduur</span>
+        <select id="instellingen-studeersessie-sessieduur-dropdown"
+                class="text-sm border border-gray-200 rounded-xl px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary">
+          <option value="30">30 min</option>
+          <option value="45">45 min</option>
+          <option value="60" selected>60 min</option>
+          <option value="90">90 min</option>
+          <option value="120">120 min</option>
+        </select>
+      </div>
+      <div class="flex items-center justify-between">
+        <span class="text-sm text-gray-700">Pauzetijd</span>
+        <select id="instellingen-studeersessie-pauzetijd-dropdown"
+                class="text-sm border border-gray-200 rounded-xl px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary">
+          <option value="5">5 min</option>
+          <option value="10" selected>10 min</option>
+          <option value="15">15 min</option>
+          <option value="20">20 min</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Section: Beschikbaarheid -->
+    <div class="bg-white rounded-2xl px-5 py-5 shadow-sm border border-gray-100">
+      <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-4">Beschikbaarheid</h3>
+      <a href="04.2-beschikbaarheid.html"
+         class="flex items-center justify-between group">
+        <span class="text-sm text-gray-700">Geblokkeerde dagen beheren</span>
+        <span class="text-gray-400 group-hover:text-primary transition-colors">›</span>
+      </a>
+    </div>
+
+    <!-- Section: Herinneringen -->
+    <div class="bg-white rounded-2xl px-5 py-5 shadow-sm border border-gray-100">
+      <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-4">Herinneringen</h3>
+      <div class="flex items-center justify-between mb-4">
+        <span class="text-sm text-gray-700">Dagelijkse herinnering</span>
+        <label class="relative inline-flex items-center cursor-pointer">
+          <input id="instellingen-herinneringen-herinnering-toggle"
+                 type="checkbox"
+                 onchange="toggleReminderTime()"
+                 class="sr-only peer">
+          <div class="w-11 h-6 bg-gray-200 peer-focus:ring-2 peer-focus:ring-primary/30 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+        </label>
+      </div>
+      <div id="reminder-time-row" class="hidden items-center justify-between">
+        <span class="text-sm text-gray-700">Herinneringstijd</span>
+        <input id="instellingen-herinneringen-tijdpicker"
+               type="time" value="08:00"
+               class="text-sm border border-gray-200 rounded-xl px-3 py-2 text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary">
+      </div>
+    </div>
+
+    <!-- Save button -->
+    <button id="instellingen-acties-opslaan-knop"
+            onclick="saveSettings()"
+            class="w-full bg-primary hover:bg-primary-dark text-white font-semibold py-4 rounded-2xl shadow-sm shadow-indigo-200 transition-all active:scale-98">
+      Instellingen opslaan
+    </button>
+
+  </main>
+
+  <script>
+    injectNav('settings');
+
+    (async function() {
+      const data = await FS.initData();
+      const s = data.settings;
+
+      // Magister state
+      if (s.magister_connected && s.magister_email) {
+        document.getElementById('magister-connected-state').classList.remove('hidden');
+        document.getElementById('magister-connected-state').classList.add('flex');
+        document.getElementById('magister-disconnected-state').classList.add('hidden');
+        document.getElementById('instellingen-magister-verbinding-magister-account').textContent =
+          s.magister_email;
+      }
+
+      // Shortlist
+      const shortlistInput = document.getElementById('instellingen-studeersessie-shortlist-grootte-stepper');
+      shortlistInput.value = s.shortlist_size || 3;
+      document.getElementById('shortlist-val').textContent = s.shortlist_size || 3;
+
+      // Sessieduur
+      const durationSelect = document.getElementById('instellingen-studeersessie-sessieduur-dropdown');
+      durationSelect.value = String(s.session_length_min || 60);
+
+      // Pauzetijd
+      const breakSelect = document.getElementById('instellingen-studeersessie-pauzetijd-dropdown');
+      breakSelect.value = String(s.break_length_min || 10);
+
+      // Herinneringen
+      const toggle = document.getElementById('instellingen-herinneringen-herinnering-toggle');
+      toggle.checked = !!s.reminder_enabled;
+      if (s.reminder_enabled) {
+        document.getElementById('reminder-time-row').classList.remove('hidden');
+        document.getElementById('reminder-time-row').classList.add('flex');
+      }
+      if (s.reminder_time) {
+        document.getElementById('instellingen-herinneringen-tijdpicker').value = s.reminder_time;
+      }
+    })();
+
+    function toggleReminderTime() {
+      const toggle = document.getElementById('instellingen-herinneringen-herinnering-toggle');
+      const row = document.getElementById('reminder-time-row');
+      if (toggle.checked) {
+        row.classList.remove('hidden');
+        row.classList.add('flex');
+      } else {
+        row.classList.add('hidden');
+        row.classList.remove('flex');
+      }
+    }
+
+    function saveSettings() {
+      const data = FS.loadData();
+      data.settings.shortlist_size = parseInt(document.getElementById('instellingen-studeersessie-shortlist-grootte-stepper').value);
+      data.settings.session_length_min = parseInt(document.getElementById('instellingen-studeersessie-sessieduur-dropdown').value);
+      data.settings.break_length_min = parseInt(document.getElementById('instellingen-studeersessie-pauzetijd-dropdown').value);
+      data.settings.reminder_enabled = document.getElementById('instellingen-herinneringen-herinnering-toggle').checked;
+      data.settings.reminder_time = document.getElementById('instellingen-herinneringen-tijdpicker').value;
+      FS.saveData(data);
+
+      // Toast
+      const toast = document.getElementById('save-toast');
+      toast.classList.remove('opacity-0');
+      toast.classList.add('opacity-100');
+      setTimeout(() => {
+        toast.classList.remove('opacity-100');
+        toast.classList.add('opacity-0');
+      }, 2000);
+    }
+
+    function goReconnect() {
+      window.location.href = '01.2-magister-sync.html';
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlowState — Import Review</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5' } } } }</script>
+  <link rel="manifest" href="manifest.json">
+  <script src="shared/app.js"></script>
+</head>
+<body class="bg-white min-h-screen flex flex-col">
+
+  <header class="flex items-center px-4 py-4 border-b border-gray-100">
+    <a href="01.2-magister-sync.html" class="text-gray-500 hover:text-gray-800 text-sm font-medium flex items-center gap-1">← Terug</a>
+    <span class="flex-1 text-center font-bold text-gray-900">✦ FlowState</span>
+    <div class="w-12"></div>
+  </header>
+
+  <main class="flex-1 px-6 py-8 max-w-sm mx-auto w-full flex flex-col">
+
+    <!-- Section: Header -->
+    <h1 id="import-review-header-paginatitel"
+        class="text-2xl font-semibold text-gray-900 mb-1">
+      Nieuw huiswerk van Magister
+    </h1>
+    <p id="import-review-header-aantal-label"
+       class="text-sm text-gray-400 mb-6"></p>
+
+    <!-- Empty state (no new items) -->
+    <div id="empty-state" class="hidden flex-1 flex flex-col items-center justify-center text-center py-12">
+      <div class="text-4xl mb-3">🎉</div>
+      <p class="text-gray-500 text-sm">Je bent helemaal bij!<br>Geen nieuw huiswerk.</p>
+    </div>
+
+    <!-- Section: Import Lijst -->
+    <div id="import-list" class="space-y-3 flex-1"></div>
+
+    <!-- Section: Acties -->
+    <div class="pt-6">
+      <button id="import-review-acties-import-knop"
+              onclick="doImport()"
+              class="w-full bg-primary hover:bg-primary-dark text-white font-semibold py-4 px-6 rounded-2xl transition-all shadow-lg shadow-indigo-200 flex items-center justify-center gap-2">
+        <span id="import-btn-label">Taken importeren →</span>
+      </button>
+    </div>
+
+  </main>
+
+  <script>
+    let items = [];
+    let selected = new Set();
+
+    (async function() {
+      const data = await FS.initData();
+      // Demo: all tasks from Magister that aren't already imported
+      const imported = new Set(
+        data.tasks.filter(t => t.magister_id).map(t => t.magister_id)
+      );
+      // Simulate "new" Magister items (those not yet in our task list — on first run, show demo items)
+      const alreadyHave = data.tasks.filter(t => t.source === 'magister');
+      if (alreadyHave.length > 0) {
+        // All already imported — show empty state
+        document.getElementById('empty-state').classList.remove('hidden');
+        document.getElementById('import-list').classList.add('hidden');
+        document.getElementById('import-review-acties-import-knop').closest('div').classList.add('hidden');
+        document.getElementById('import-review-header-aantal-label').textContent = '0 items gevonden';
+        return;
+      }
+
+      // First run: show demo items
+      items = [
+        { id: 'mg_001', title: 'Essay English', deadline: '2026-05-26', subject: 'English' },
+        { id: 'mg_002', title: 'Math exercises chapter 5', deadline: '2026-05-28', subject: 'Math' },
+        { id: 'mg_003', title: 'History summary chapter 8', deadline: '2026-05-30', subject: 'History' },
+      ];
+
+      items.forEach(item => selected.add(item.id));
+      renderList();
+    })();
+
+    function renderList() {
+      const list = document.getElementById('import-list');
+      const countLabel = document.getElementById('import-review-header-aantal-label');
+      countLabel.textContent = `${items.length} item${items.length !== 1 ? 's' : ''} gevonden`;
+
+      list.innerHTML = items.map(item => `
+        <label class="flex items-start gap-3 p-4 border border-gray-200 rounded-xl cursor-pointer hover:border-primary/40 hover:bg-indigo-50/30 transition-colors">
+          <input type="checkbox"
+                 id="cb-${item.id}"
+                 ${selected.has(item.id) ? 'checked' : ''}
+                 onchange="toggleItem('${item.id}')"
+                 class="mt-0.5 accent-primary w-4 h-4 rounded">
+          <div class="flex-1 min-w-0">
+            <div id="import-review-import-lijst-import-item-naam"
+                 class="text-sm font-medium text-gray-900 truncate">${item.title}</div>
+            <div id="import-review-import-lijst-deadline-label"
+                 class="text-xs text-gray-400 mt-0.5">Inleveren ${FS.formatDeadline(item.deadline)}</div>
+          </div>
+        </label>
+      `).join('');
+
+      updateImportBtn();
+    }
+
+    function toggleItem(id) {
+      if (selected.has(id)) selected.delete(id);
+      else selected.add(id);
+      updateImportBtn();
+    }
+
+    function updateImportBtn() {
+      const n = selected.size;
+      document.getElementById('import-btn-label').textContent =
+        n > 0 ? `${n} taak${n !== 1 ? 'en' : ''} importeren →` : 'Selecteer taken om te importeren';
+      document.getElementById('import-review-acties-import-knop').disabled = n === 0;
+    }
+
+    async function doImport() {
+      const data = await FS.initData();
+      // Add selected items as tasks (minimal data — enrichment happens in 01.4)
+      const selectedItems = items.filter(i => selected.has(i.id));
+      const newTasks = selectedItems.map(i => ({
+        id: 'mg_' + Date.now() + '_' + i.id,
+        title: i.title,
+        subject: i.subject,
+        deadline: i.deadline,
+        sessions_total: 1,
+        sessions_done: 0,
+        complexity: 'medium',
+        subtasks: [],
+        materials: [],
+        status: 'pending',
+        source: 'magister',
+        magister_id: i.id,
+        created_at: new Date().toISOString().slice(0, 10),
+        needs_enrichment: true
+      }));
+
+      data.tasks.push(...newTasks);
+      FS.saveData(data);
+
+      // Store queue for 01.4
+      sessionStorage.setItem('enrichment_queue', JSON.stringify(newTasks.map(t => t.id)));
+      window.location.href = '01.4-taak-aanmaken.html';
+    }
+  </script>
+
+</body>
+</html>
