@@ -111,53 +111,96 @@ function formatDeadline(deadline) {
   return due.toLocaleDateString('nl', { month: 'short', day: 'numeric' });
 }
 
-// ── Energy Algorithm ─────────────────────────────────────────────────────────
-// Score = urgency_weight × energy_multiplier + priority_bonus
-// Energy multiplier: high=1.0, normal=0.8, low=0.5 (low energy → prefer easy tasks)
-// Rule: ALL urgent tasks (deadline today or tomorrow) are always included.
+// ── Daily Plan ────────────────────────────────────────────────────────────────
+// Distributes sessions evenly across available days, respecting per-task deadlines.
+// Rule: max 1 session per task per day.
+//
+// Algorithm:
+//   pressure  = remaining_sessions / available_days_until_deadline
+//   dailyTarget = max(forcedCount, ceil(totalRemaining / totalAvailableDays))
+//   required  = top dailyTarget tasks sorted by pressure
+//   optional  = next task (only for energy normal/high; low=easy tasks only)
+//
+// Self-correcting: as sessions are logged, pressure updates daily.
 
-function buildShortlist(tasks, energy, size) {
-  const energyMultiplier = { high: 1.0, normal: 0.8, low: 0.5 };
-  const urgencyWeight = { urgent: 100, this_week: 50, upcoming: 10 };
-  const complexityPenalty = { high: 30, medium: 15, low: 0 };
-  const priorityBonus = { high: 40, normal: 0, low: -20 };
-  const em = energyMultiplier[energy] || 0.8;
-
+function buildDailyPlan(tasks, settings, energy) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+  const todayStr = today.toISOString().slice(0, 10);
 
+  const blocked          = (settings?.blocked_days?.specific)   || [];
+  const recurringBlocked = (settings?.blocked_days?.recurring)  || ['saturday', 'sunday'];
+  const dayNames = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+
+  function isAvailable(dateStr) {
+    const d = new Date(dateStr + 'T00:00:00');
+    if (recurringBlocked.includes(dayNames[d.getDay()])) return false;
+    if (blocked.includes(dateStr)) return false;
+    return true;
+  }
+
+  function availableDaysUntil(deadline) {
+    let count = 0;
+    const cur = new Date(today);
+    const due = new Date(deadline + 'T00:00:00');
+    while (cur < due) {
+      if (isAvailable(cur.toISOString().slice(0, 10))) count++;
+      cur.setDate(cur.getDate() + 1);
+    }
+    return count;
+  }
+
+  const todayAvailable = isAvailable(todayStr);
+
+  // Score every pending task
   const pending = tasks.filter(t => t.status !== 'done' && !t.needs_enrichment);
-
   const scored = pending.map(t => {
-    const urgency = getUrgency(t.deadline, Math.max(1, t.sessions_total - t.sessions_done));
-    const uw = urgencyWeight[urgency];
-    const cp = energy === 'low' ? complexityPenalty[t.complexity || 'medium'] : 0;
-    const pb = priorityBonus[t.priority || 'normal'];
-
-    // Session pressure bonus: extra score when sessions/day ratio is tight.
-    // Rule: 1 session per subject per day → pressure = remaining / available_days
-    // Cap at 30 to avoid drowning out other signals.
-    const due = new Date(t.deadline + 'T00:00:00');
-    const availableDays = Math.max(1, Math.ceil((due - today) / (1000 * 60 * 60 * 24)));
     const remaining = Math.max(0, t.sessions_total - t.sessions_done);
-    const pressure = remaining / availableDays; // >1 = overloaded, ~1 = tight, <0.5 = relaxed
-    const sessionBonus = Math.min(30, Math.round(pressure * 20));
-
-    const score = (uw - cp + pb + sessionBonus) * em;
-    return { ...t, urgency, score };
-  });
+    const days      = Math.max(1, availableDaysUntil(t.deadline));
+    const pressure  = remaining / days;
+    return { ...t, remaining, availableDays: days, pressure };
+  }).filter(t => t.remaining > 0);
 
   scored.sort((a, b) => {
-    if (b.score !== a.score) return b.score - a.score;
-    // Tiebreaker: newer tasks first so freshly added tasks surface above older equal-scored tasks
-    return (b.created_at || '') > (a.created_at || '') ? 1 : -1;
+    if (Math.abs(b.pressure - a.pressure) > 0.0001) return b.pressure - a.pressure;
+    // Tiebreak: soonest deadline first
+    return a.deadline < b.deadline ? -1 : 1;
   });
 
-  // Always include all urgent tasks, then fill up to `size` with the rest
-  const urgent = scored.filter(t => t.urgency === 'urgent');
-  const rest = scored.filter(t => t.urgency !== 'urgent');
-  const filler = rest.slice(0, Math.max(0, size - urgent.length));
-  return [...urgent, ...filler];
+  if (scored.length === 0 || !todayAvailable) {
+    return { required: [], optional: null, dailyTarget: 0, todayAvailable };
+  }
+
+  // Total load and available capacity
+  const totalRemaining = scored.reduce((s, t) => s + t.remaining, 0);
+  const latestDeadline = scored.reduce((max, t) => t.deadline > max ? t.deadline : max, todayStr);
+  const totalDays      = Math.max(1, availableDaysUntil(latestDeadline));
+
+  // forced = tasks that cannot skip today (remaining == availableDays)
+  const forcedCount = scored.filter(t => t.remaining >= t.availableDays).length;
+  const baseTarget  = Math.ceil(totalRemaining / totalDays);
+  const dailyTarget = Math.max(1, forcedCount, baseTarget);
+
+  const required   = scored.slice(0, dailyTarget);
+  const candidates = scored.slice(dailyTarget);
+
+  // Optional session: skip for low energy unless task is simple
+  let optional = null;
+  if (candidates.length > 0) {
+    if (energy === 'low') {
+      optional = candidates.find(t => (t.complexity || 'medium') === 'low') || null;
+    } else {
+      optional = candidates[0];
+    }
+  }
+
+  return { required, optional, dailyTarget, todayAvailable };
+}
+
+// Returns true if a session for taskId was already logged today
+function hasSessionToday(taskId, sessions_log) {
+  const today = new Date().toISOString().slice(0, 10);
+  return (sessions_log || []).some(s => s.task_id === taskId && s.date === today);
 }
 
 // ── Session / State ───────────────────────────────────────────────────────────
@@ -343,7 +386,7 @@ function navigate(page) {
 window.FS = {
   initData, loadData, saveData,
   getUrgency, urgencyLabel, formatDeadline,
-  buildShortlist,
+  buildDailyPlan, hasSessionToday,
   isSetupDone, markSetupDone,
   getTodayEnergy, setTodayEnergy,
   getCapacityWarning,

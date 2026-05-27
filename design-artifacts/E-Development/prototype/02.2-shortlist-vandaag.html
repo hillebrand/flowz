@@ -44,6 +44,269 @@
       <span id="capaciteitsdruk-tekst"></span>
     </div>
 
+    <!-- Vrije dag state -->
+    <div id="blocked-state" class="hidden text-center py-16">
+      <div class="text-4xl mb-3">🛋️</div>
+      <p class="text-xl font-bold text-gray-900 mb-2">Vrije dag!</p>
+      <p class="text-sm text-gray-400">Vandaag staat geblokkeerd.<br>Geniet van je rust.</p>
+    </div>
+
+    <!-- Empty state -->
+    <div id="empty-state" class="hidden text-center py-16">
+      <div class="text-4xl mb-3">🌟</div>
+      <p class="text-gray-500 text-sm">Niets te doen —<br>geniet van je vrije tijd!</p>
+    </div>
+
+    <!-- Done state -->
+    <div id="done-state" class="hidden text-center py-16">
+      <div class="text-5xl mb-4">🎉</div>
+      <p class="text-xl font-bold text-gray-900 mb-2">Je bent klaar voor vandaag!</p>
+      <p class="text-sm text-gray-400">Geweldig gedaan. Tot morgen.</p>
+    </div>
+
+    <!-- Sectieheader verplichte sessies -->
+    <div id="plan-header" class="hidden flex items-center gap-2 mb-3 px-1">
+      <span id="plan-header-label" class="text-xs font-bold tracking-widest text-gray-400"></span>
+      <div class="flex-1 h-px bg-gray-200"></div>
+    </div>
+
+    <!-- Verplichte sessies -->
+    <div id="shortlist-container" class="space-y-3"></div>
+
+    <!-- Optionele sessie -->
+    <div id="optional-section" class="hidden mt-5">
+      <div class="flex items-center gap-2 mb-3 px-1">
+        <span class="text-xs font-bold tracking-widest text-indigo-300">✨ OPTIONEEL</span>
+        <div class="flex-1 h-px bg-indigo-100"></div>
+      </div>
+      <div id="optional-container"></div>
+    </div>
+
+    <!-- Add task -->
+    <button onclick="goAddTask()"
+            class="mt-4 w-full text-sm text-gray-400 hover:text-primary transition-colors py-3">
+      + Taak toevoegen
+    </button>
+
+  </main>
+
+  <script>
+    injectNav('checkin');
+
+    const ENERGY_CONFIG = {
+      low:    { emoji: '😴', label: 'Laag',    badgeClass: 'bg-blue-100 text-blue-600' },
+      normal: { emoji: '😊', label: 'Normaal', badgeClass: 'bg-green-100 text-green-600' },
+      high:   { emoji: '⚡', label: 'Hoog',    badgeClass: 'bg-yellow-100 text-yellow-700' },
+    };
+
+    let _data = null;
+    let _plan = null;
+
+    (async function() {
+      _data = await FS.initData();
+
+      // Redirect to check-in if no energy set today
+      const energy = FS.getTodayEnergy();
+      if (!energy) { window.location.href = '02.1-energie-check-in.html'; return; }
+
+      // Day header
+      const now = new Date();
+      document.getElementById('shortlist-vandaag-dagstatus-dagdatum').textContent =
+        `Vandaag — ${now.toLocaleDateString('nl', { weekday: 'short', day: 'numeric', month: 'short' })}`;
+
+      const ec = ENERGY_CONFIG[energy] || ENERGY_CONFIG.normal;
+      const badge = document.getElementById('shortlist-vandaag-dagstatus-energieniveau-badge');
+      badge.textContent = `${ec.emoji} ${ec.label} ✎`;
+      badge.className = `text-xs px-3 py-1 rounded-full font-medium cursor-pointer hover:opacity-70 transition-opacity ${ec.badgeClass}`;
+      badge.onclick = () => { window.location.href = '02.1-energie-check-in.html?change=1'; };
+
+      // Capacity warning
+      const capWarning = FS.getCapacityWarning(_data.tasks, _data.settings || {});
+      if (capWarning) {
+        document.getElementById('shortlist-vandaag-dagstatus-capaciteitsdruk-banner').classList.remove('hidden');
+        document.getElementById('capaciteitsdruk-tekst').textContent = capWarning;
+      }
+
+      // Build daily plan
+      _plan = FS.buildDailyPlan(_data.tasks, _data.settings || {}, energy);
+
+      if (!_plan.todayAvailable) {
+        document.getElementById('blocked-state').classList.remove('hidden');
+        return;
+      }
+
+      if (_plan.required.length === 0) {
+        document.getElementById('empty-state').classList.remove('hidden');
+        return;
+      }
+
+      // Urgency banner: required tasks due today/tomorrow
+      const urgentTasks = _plan.required.filter(t =>
+        FS.getUrgency(t.deadline, Math.max(1, t.sessions_total - t.sessions_done)) === 'urgent'
+      );
+      if (urgentTasks.length > 0) {
+        document.getElementById('shortlist-vandaag-dagstatus-urgentie-banner').classList.remove('hidden');
+        const names = urgentTasks.map(t => `"${t.title}"`).join(' en ');
+        document.getElementById('urgentie-banner-tekst').textContent =
+          `${names} ${urgentTasks.length === 1 ? 'is' : 'zijn'} ${FS.formatDeadline(urgentTasks[0].deadline)} inleveren!`;
+      }
+
+      renderPage();
+    })();
+
+    function renderPage() {
+      _data = FS.loadData();
+      renderRequired();
+      renderOptional();
+      checkAllDone();
+    }
+
+    function renderRequired() {
+      const header = document.getElementById('plan-header');
+      const label  = document.getElementById('plan-header-label');
+      const n = _plan.required.length;
+      header.classList.remove('hidden');
+      label.textContent = `VANDAAG — ${n} SESSIE${n !== 1 ? 'S' : ''}`;
+
+      document.getElementById('shortlist-container').innerHTML =
+        _plan.required.map(t => taskCard(t, false)).join('');
+    }
+
+    function renderOptional() {
+      const section = document.getElementById('optional-section');
+      const container = document.getElementById('optional-container');
+      if (!_plan.optional) { section.classList.add('hidden'); return; }
+      section.classList.remove('hidden');
+      container.innerHTML = taskCard(_plan.optional, true);
+    }
+
+    function taskCard(t, isOptional) {
+      const todayDone  = FS.hasSessionToday(t.id, _data.sessions_log);
+      const remaining  = Math.max(0, t.sessions_total - t.sessions_done);
+      const urgency    = FS.getUrgency(t.deadline, Math.max(1, remaining));
+      const dot        = urgency === 'urgent' ? '🔴' : urgency === 'this_week' ? '🟡' : '🟢';
+      const cardBorder = isOptional
+        ? 'border-dashed border-indigo-200 bg-white/60'
+        : 'border-gray-100 bg-white';
+
+      return `
+        <div id="card-${t.id}"
+             class="rounded-2xl px-4 py-4 shadow-sm border flex items-start gap-3 transition-all duration-300 ${cardBorder} ${todayDone ? 'opacity-50' : ''}">
+          <button onclick="toggleSession('${t.id}')"
+                  class="mt-0.5 w-6 h-6 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all
+                    ${todayDone ? 'border-primary bg-primary text-white text-xs' : 'border-gray-300'}">
+            ${todayDone ? '✓' : ''}
+          </button>
+          <a href="03.1-taak-detail.html?id=${t.id}" class="flex-1 min-w-0">
+            <div class="text-sm font-medium text-gray-900 ${todayDone ? 'line-through text-gray-400' : ''}">${t.title}</div>
+            <div class="text-xs text-gray-400 mt-0.5">
+              ${FS.formatDeadline(t.deadline)} · nog ${remaining} sessie${remaining !== 1 ? 's' : ''}
+            </div>
+          </a>
+          <span class="text-base">${dot}</span>
+        </div>`;
+    }
+
+    function toggleSession(id) {
+      _data = FS.loadData();
+      const task = _data.tasks.find(t => t.id === id);
+      if (!task) return;
+
+      const todayStr = new Date().toISOString().slice(0, 10);
+      _data.sessions_log = _data.sessions_log || [];
+
+      const logIdx = _data.sessions_log.findLastIndex
+        ? _data.sessions_log.findLastIndex(s => s.task_id === id && s.date === todayStr)
+        : [..._data.sessions_log].reverse().findIndex(s => s.task_id === id && s.date === todayStr);
+      // findLastIndex polyfill: recompute real index
+      const realIdx = _data.sessions_log.map((s, i) => ({ s, i }))
+        .filter(({ s }) => s.task_id === id && s.date === todayStr)
+        .map(({ i }) => i)
+        .pop();
+
+      if (realIdx === undefined) {
+        // Log session
+        task.sessions_done = Math.min(task.sessions_total, task.sessions_done + 1);
+        if (task.sessions_done >= task.sessions_total) task.status = 'done';
+        _data.sessions_log.push({ task_id: id, date: todayStr });
+        if (!_data.study_days) _data.study_days = [];
+        if (!_data.study_days.includes(todayStr)) _data.study_days.push(todayStr);
+      } else {
+        // Undo session
+        task.sessions_done = Math.max(0, task.sessions_done - 1);
+        if (task.status === 'done' && task.sessions_done < task.sessions_total) task.status = 'pending';
+        _data.sessions_log.splice(realIdx, 1);
+      }
+
+      FS.saveData(_data);
+      renderPage();
+    }
+
+    function checkAllDone() {
+      const required = _plan.required;
+      if (required.length === 0) return;
+      const allDone = required.every(t => FS.hasSessionToday(t.id, _data.sessions_log));
+      if (allDone) {
+        setTimeout(() => {
+          document.getElementById('shortlist-container').classList.add('hidden');
+          document.getElementById('plan-header').classList.add('hidden');
+          document.getElementById('optional-section').classList.add('hidden');
+          document.getElementById('done-state').classList.remove('hidden');
+        }, 600);
+      }
+    }
+
+    function goAddTask() {
+      _data = FS.loadData();
+      const newId = 'manual_' + Date.now();
+      const nextWeek = new Date();
+      nextWeek.setDate(nextWeek.getDate() + 7);
+      _data.tasks.push({
+        id: newId, title: 'Nieuwe taak', subject: 'Other',
+        deadline: nextWeek.toISOString().slice(0, 10),
+        sessions_total: 1, sessions_done: 0, complexity: 'medium',
+        subtasks: [], materials: [], status: 'pending', source: 'manual',
+        magister_id: null, created_at: new Date().toISOString().slice(0, 10)
+      });
+      FS.saveData(_data);
+      sessionStorage.setItem('enrichment_queue', JSON.stringify([newId]));
+      window.location.href = '01.4-taak-aanmaken.html';
+    }
+  </script>
+</body>
+</html>
+
+
+  <!-- App Header -->
+  <header class="bg-white flex items-center px-4 py-4 border-b border-gray-100 sticky top-0 z-30">
+    <button onclick="openNav()" class="text-gray-600 hover:text-gray-900 text-xl w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors">☰</button>
+    <span class="flex-1 text-center font-bold text-gray-900">✦ FlowState</span>
+    <a href="04.1-instellingen.html" class="text-gray-600 hover:text-gray-900 text-xl w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors">👤</a>
+  </header>
+
+  <!-- Section: Dagstatus -->
+  <div class="bg-white border-b border-gray-100 px-4 py-3">
+    <div class="max-w-sm mx-auto flex items-center justify-between">
+      <div id="shortlist-vandaag-dagstatus-dagdatum" class="text-sm font-semibold text-gray-800"></div>
+      <div id="shortlist-vandaag-dagstatus-energieniveau-badge" class="text-xs px-3 py-1 rounded-full font-medium"></div>
+    </div>
+  </div>
+
+  <main class="flex-1 px-4 py-4 max-w-sm mx-auto w-full pb-24">
+
+    <!-- Urgentie Banner (conditioneel) -->
+    <div id="shortlist-vandaag-dagstatus-urgentie-banner"
+         class="hidden mb-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 flex items-start gap-2">
+      <span>⚠</span>
+      <span id="urgentie-banner-tekst"></span>
+    </div>
+
+    <!-- Capaciteitsdruk Banner (conditioneel) -->
+    <div id="shortlist-vandaag-dagstatus-capaciteitsdruk-banner"
+         class="hidden mb-3 bg-amber-50 border border-amber-200 text-amber-700 text-sm rounded-xl px-4 py-3 flex items-start gap-2">
+      <span id="capaciteitsdruk-tekst"></span>
+    </div>
+
     <!-- Empty state -->
     <div id="empty-state" class="hidden text-center py-16">
       <div class="text-4xl mb-3">🌟</div>
