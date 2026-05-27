@@ -183,7 +183,7 @@
       document.getElementById('taak-detail-bewerken-taak-info-vak-en-deadline').textContent =
         `${task.subject} · Inleveren ${FS.formatDeadline(task.deadline)}`;
 
-      const urgency = FS.getUrgency(task.deadline);
+      const urgency = FS.getUrgency(task.deadline, Math.max(1, task.sessions_total - task.sessions_done));
       const urgencyDot = document.getElementById('urgency-dot');
       urgencyDot.textContent = urgency === 'urgent' ? '🔴' : urgency === 'this_week' ? '🟡' : '🟢';
       // Remove previously injected priority badge if re-rendering

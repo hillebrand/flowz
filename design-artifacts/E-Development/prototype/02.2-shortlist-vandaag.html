@@ -113,7 +113,7 @@
         document.getElementById('capaciteitsdruk-tekst').textContent = capWarning;
       }
 
-      const urgentTasks = shortlist.filter(t => FS.getUrgency(t.deadline) === 'urgent');
+      const urgentTasks = shortlist.filter(t => FS.getUrgency(t.deadline, Math.max(1, t.sessions_total - t.sessions_done)) === 'urgent');
       if (urgentTasks.length > 0) {
         document.getElementById('shortlist-vandaag-dagstatus-urgentie-banner').classList.remove('hidden');
         const names = urgentTasks.map(t => `"${t.title}"`).join(' en ');
@@ -128,7 +128,7 @@
     function renderShortlist(tasks) {
       const container = document.getElementById('shortlist-container');
       container.innerHTML = tasks.map(t => {
-        const urgency = FS.getUrgency(t.deadline);
+        const urgency = FS.getUrgency(t.deadline, Math.max(1, t.sessions_total - t.sessions_done));
         const dot = urgency === 'urgent' ? '🔴' : urgency === 'this_week' ? '🟡' : '🟢';
         const checked = t.status === 'done';
         return `

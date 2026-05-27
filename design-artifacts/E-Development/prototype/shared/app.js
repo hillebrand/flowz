@@ -78,15 +78,19 @@ async function initData() {
 
 // ── Task Helpers ──────────────────────────────────────────────────────────────
 
-function getUrgency(deadline) {
+// sessionsRemaining: optional — when provided, urgency also considers session pressure.
+// pressure = sessionsRemaining / daysLeft. pressure >= 1 → urgent, >= 0.5 → this_week.
+// Calendar usage (no sessions) falls back to date-only logic.
+function getUrgency(deadline, sessionsRemaining = 1) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   // Parse deadline as local midnight to avoid UTC-vs-local timezone drift
   const due = new Date(deadline + 'T00:00:00');
   const diffDays = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
-  if (diffDays <= 1) return 'urgent';      // 🔴
-  if (diffDays <= 7) return 'this_week';   // 🟡
-  return 'upcoming';                        // 🟢
+  const pressure = sessionsRemaining / Math.max(1, diffDays);
+  if (diffDays <= 1 || pressure >= 1)   return 'urgent';     // 🔴
+  if (diffDays <= 7 || pressure >= 0.5) return 'this_week';  // 🟡
+  return 'upcoming';                                           // 🟢
 }
 
 function urgencyLabel(deadline) {
@@ -125,7 +129,7 @@ function buildShortlist(tasks, energy, size) {
   const pending = tasks.filter(t => t.status !== 'done' && !t.needs_enrichment);
 
   const scored = pending.map(t => {
-    const urgency = getUrgency(t.deadline);
+    const urgency = getUrgency(t.deadline, Math.max(1, t.sessions_total - t.sessions_done));
     const uw = urgencyWeight[urgency];
     const cp = energy === 'low' ? complexityPenalty[t.complexity || 'medium'] : 0;
     const pb = priorityBonus[t.priority || 'normal'];

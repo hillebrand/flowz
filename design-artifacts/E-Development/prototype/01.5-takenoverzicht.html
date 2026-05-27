@@ -141,7 +141,7 @@
 
       const grouped = { urgent: [], this_week: [], upcoming: [] };
       tasks.forEach(t => {
-        const g = FS.getUrgency(t.deadline);
+        const g = FS.getUrgency(t.deadline, Math.max(1, t.sessions_total - t.sessions_done));
         if (grouped[g]) grouped[g].push(t);
       });
 
