@@ -186,9 +186,12 @@ function setTodayEnergy(energy) {
 }
 
 // ── Capacity Warning ─────────────────────────────────────────────────────────
-// Busy period: ≥12 sessions to complete within the next 5 available study days.
-// Rule: max 1 session per subject per day — so 5 days × N subjects = capacity.
-// Also warns when a specific task has fewer available days than sessions needed.
+// Checks three consecutive 5-day windows (now, ~1 week, ~2 weeks ahead).
+// Session load in a window starting after S available days:
+//   before  = min(R, S)            — sessions that can happen before window
+//   after   = max(0, D - S - W)    — days available after window end
+//   forced  = max(0, R - before - after)
+// Warns on the nearest window that hits the threshold (≥12 sessions).
 
 function getCapacityWarning(tasks, settings) {
   const today = new Date();
@@ -217,9 +220,38 @@ function getCapacityWarning(tasks, settings) {
     return count;
   }
 
-  // Per-task check: does any task have fewer available days than sessions remaining?
-  // Also applies the 1-session-per-subject-per-day rule: max 1 session of this
-  // task per day regardless of other tasks.
+  // Return the calendar date of the (n+1)th available day (0-based offset n)
+  function availableDayAt(n) {
+    const cur = new Date(today);
+    let found = -1;
+    for (let i = 0; i < 365; i++) {
+      if (isAvailable(cur.toISOString().slice(0, 10))) {
+        found++;
+        if (found === n) return new Date(cur);
+      }
+      cur.setDate(cur.getDate() + 1);
+    }
+    return null;
+  }
+
+  // Compute session load forced into a 5-day window that starts after S available days
+  const WINDOW = 5;
+  const BUSY_THRESHOLD = 12;
+
+  function sessionsInWindow(s) {
+    let total = 0;
+    for (const t of pending) {
+      const r = Math.max(0, t.sessions_total - t.sessions_done);
+      if (r === 0) continue;
+      const d = availableDaysUntil(t.deadline);
+      const before = Math.min(r, s);
+      const after  = Math.max(0, d - s - WINDOW);
+      total += Math.max(0, r - before - after);
+    }
+    return total;
+  }
+
+  // Per-task check: fewer available days than sessions needed → immediate alert
   for (const t of pending) {
     const remaining = t.sessions_total - t.sessions_done;
     if (remaining <= 0) continue;
@@ -229,35 +261,26 @@ function getCapacityWarning(tasks, settings) {
     }
   }
 
-  // Busy-period check: count how many sessions are forced into the next WINDOW
-  // available study days. A task with R remaining sessions and D total available
-  // days until its deadline MUST complete max(0, R − (D − WINDOW)) sessions
-  // within the window (1 session per subject per day rule).
-  const WINDOW = 5;
-  const BUSY_THRESHOLD = 12;
+  // Check windows at offsets 0, 5, 10 available days
+  const offsets = [
+    { s: 0,  label: 'nu' },
+    { s: 5,  label: 'over een week' },
+    { s: 10, label: 'over twee weken' },
+  ];
 
-  // Build list of the next WINDOW available day strings
-  let windowDays = 0;
-  const windowDaySet = new Set();
-  const cur2 = new Date(today);
-  while (windowDays < WINDOW) {
-    const ds = cur2.toISOString().slice(0, 10);
-    if (isAvailable(ds)) { windowDaySet.add(ds); windowDays++; }
-    cur2.setDate(cur2.getDate() + 1);
-  }
-
-  let totalSessions = 0;
-  for (const t of pending) {
-    const remaining = Math.max(0, t.sessions_total - t.sessions_done);
-    if (remaining <= 0) continue;
-    const daysUntilDeadline = availableDaysUntil(t.deadline);
-    const daysAfterWindow = Math.max(0, daysUntilDeadline - WINDOW);
-    const sessionsInWindow = Math.max(0, remaining - daysAfterWindow);
-    totalSessions += sessionsInWindow;
-  }
-
-  if (totalSessions >= BUSY_THRESHOLD) {
-    return `📅 Drukke periode — ${totalSessions} sessies in ${WINDOW} dagen`;
+  for (const { s, label } of offsets) {
+    const load = sessionsInWindow(s);
+    if (load >= BUSY_THRESHOLD) {
+      // For future windows, add the calendar date of window start for context
+      if (s === 0) {
+        return `📅 Drukke periode — ${load} sessies in ${WINDOW} dagen`;
+      }
+      const windowStart = availableDayAt(s);
+      const dateLabel = windowStart
+        ? windowStart.toLocaleDateString('nl', { day: 'numeric', month: 'short' })
+        : label;
+      return `📅 Drukke periode ${label} (${dateLabel}) — ${load} sessies`;
+    }
   }
 
   return null;
