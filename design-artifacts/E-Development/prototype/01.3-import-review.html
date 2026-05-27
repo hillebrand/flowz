@@ -28,14 +28,26 @@
     <p id="import-review-header-aantal-label"
        class="text-sm text-gray-400 mb-6"></p>
 
+    <!-- Loading state -->
+    <div id="loading-state" class="flex-1 flex flex-col items-center justify-center text-center py-12">
+      <div class="text-3xl animate-spin mb-3">⟳</div>
+      <p class="text-gray-400 text-sm">Huiswerk ophalen uit Magister…</p>
+    </div>
+
     <!-- Empty state (no new items) -->
     <div id="empty-state" class="hidden flex-1 flex flex-col items-center justify-center text-center py-12">
       <div class="text-4xl mb-3">🎉</div>
       <p class="text-gray-500 text-sm">Je bent helemaal bij!<br>Geen nieuw huiswerk.</p>
     </div>
 
+    <!-- Error state -->
+    <div id="error-state" class="hidden mb-6 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3">
+      <p>Er ging iets mis.</p>
+      <a href="01.2-magister-sync.html" class="underline mt-1 block">Opnieuw verbinden →</a>
+    </div>
+
     <!-- Section: Import Lijst -->
-    <div id="import-list" class="space-y-3 flex-1"></div>
+    <div id="import-list" class="hidden space-y-3 flex-1"></div>
 
     <!-- Section: Acties -->
     <div class="pt-6">
@@ -49,39 +61,68 @@
   </main>
 
   <script>
+    const WORKER_URL = 'https://flowstate-proxy.flowstate-evelien.workers.dev';
+
     let items = [];
     let selected = new Set();
 
-    (async function() {
+    (async function () {
       const data = await FS.initData();
-      // Demo: all tasks from Magister that aren't already imported
-      const imported = new Set(
-        data.tasks.filter(t => t.magister_id).map(t => t.magister_id)
-      );
-      // Simulate "new" Magister items (those not yet in our task list — on first run, show demo items)
-      const alreadyHave = data.tasks.filter(t => t.source === 'magister');
-      if (alreadyHave.length > 0) {
-        // All already imported — show empty state
-        document.getElementById('empty-state').classList.remove('hidden');
-        document.getElementById('import-list').classList.add('hidden');
-        document.getElementById('import-review-acties-import-knop').closest('div').classList.add('hidden');
-        document.getElementById('import-review-header-aantal-label').textContent = '0 items gevonden';
+      const s    = data.settings;
+
+      // Already imported all? → show empty state (can force-refresh via button)
+      const forceRefresh = sessionStorage.getItem('magister_refresh') === '1';
+      sessionStorage.removeItem('magister_refresh');
+
+      if (!s.magister_connected || !s.magister_token) {
+        // Not connected — redirect back to login
+        window.location.href = '01.2-magister-sync.html';
         return;
       }
 
-      // First run: show demo items
-      items = [
-        { id: 'mg_001', title: 'Essay English', deadline: '2026-05-26', subject: 'English' },
-        { id: 'mg_002', title: 'Math exercises chapter 5', deadline: '2026-05-28', subject: 'Math' },
-        { id: 'mg_003', title: 'History summary chapter 8', deadline: '2026-05-30', subject: 'History' },
-      ];
+      setLoading(true);
 
-      items.forEach(item => selected.add(item.id));
-      renderList();
+      try {
+        // Token expired → re-auth not supported inline; redirect to reconnect
+        if (s.magister_expires_at && Date.now() > s.magister_expires_at - 60_000) {
+          showError('Je Magister-sessie is verlopen. Verbind opnieuw.');
+          setLoading(false);
+          return;
+        }
+
+        const from = new Date().toISOString().slice(0, 10);
+        const to   = addDays(from, 90);
+        const url  = `${WORKER_URL}/homework?school=${encodeURIComponent(s.magister_school)}&token=${encodeURIComponent(s.magister_token)}&person_id=${encodeURIComponent(s.magister_person_id)}&from=${from}&to=${to}`;
+
+        const resp   = await fetch(url);
+        const result = await resp.json();
+
+        if (!resp.ok) throw new Error(result.error || 'Ophalen mislukt');
+
+        // Filter out already-imported items
+        const imported = new Set(data.tasks.filter(t => t.magister_id).map(t => t.magister_id));
+        items = result.assignments.filter(a => !imported.has(a.id));
+
+        if (items.length === 0) {
+          document.getElementById('empty-state').classList.remove('hidden');
+          document.getElementById('import-list').classList.add('hidden');
+          document.getElementById('import-review-acties-import-knop').closest('div').classList.add('hidden');
+          document.getElementById('import-review-header-aantal-label').textContent = '0 items gevonden';
+          setLoading(false);
+          return;
+        }
+
+        items.forEach(item => selected.add(item.id));
+        renderList();
+      } catch (err) {
+        showError(err.message);
+      } finally {
+        setLoading(false);
+      }
     })();
 
     function renderList() {
-      const list = document.getElementById('import-list');
+      const list       = document.getElementById('import-list');
       const countLabel = document.getElementById('import-review-header-aantal-label');
       countLabel.textContent = `${items.length} item${items.length !== 1 ? 's' : ''} gevonden`;
 
@@ -93,10 +134,13 @@
                  onchange="toggleItem('${item.id}')"
                  class="mt-0.5 accent-primary w-4 h-4 rounded">
           <div class="flex-1 min-w-0">
-            <div id="import-review-import-lijst-import-item-naam"
-                 class="text-sm font-medium text-gray-900 truncate">${item.title}</div>
-            <div id="import-review-import-lijst-deadline-label"
-                 class="text-xs text-gray-400 mt-0.5">Inleveren ${FS.formatDeadline(item.deadline)}</div>
+            <div class="flex items-center gap-2">
+              <span class="text-sm font-medium text-gray-900 truncate">${item.title}</span>
+              ${item.type && item.type !== 'Huiswerk' ? `<span class="text-xs bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded font-medium">${item.type}</span>` : ''}
+            </div>
+            <div class="text-xs text-gray-400 mt-0.5">
+              ${item.subject ? `<span class="font-medium text-gray-500">${item.subject}</span> · ` : ''}Inleveren ${FS.formatDeadline(item.deadline)}
+            </div>
           </div>
         </label>
       `).join('');
@@ -118,32 +162,47 @@
     }
 
     async function doImport() {
-      const data = await FS.initData();
-      // Add selected items as tasks (minimal data — enrichment happens in 01.4)
+      const data          = await FS.initData();
       const selectedItems = items.filter(i => selected.has(i.id));
-      const newTasks = selectedItems.map(i => ({
-        id: 'mg_' + Date.now() + '_' + i.id,
-        title: i.title,
-        subject: i.subject,
-        deadline: i.deadline,
-        sessions_total: 1,
-        sessions_done: 0,
-        complexity: 'medium',
-        subtasks: [],
-        materials: [],
-        status: 'pending',
-        source: 'magister',
-        magister_id: i.id,
-        created_at: new Date().toISOString().slice(0, 10),
-        needs_enrichment: true
+      const newTasks      = selectedItems.map(i => ({
+        id:               'mg_' + Date.now() + '_' + i.id,
+        title:            i.title,
+        subject:          i.subject,
+        deadline:         i.deadline,
+        sessions_total:   1,
+        sessions_done:    0,
+        complexity:       'medium',
+        subtasks:         [],
+        materials:        [],
+        status:           'pending',
+        source:           'magister',
+        magister_id:      i.id,
+        created_at:       new Date().toISOString().slice(0, 10),
+        needs_enrichment: true,
       }));
 
       data.tasks.push(...newTasks);
       FS.saveData(data);
 
-      // Store queue for 01.4
       sessionStorage.setItem('enrichment_queue', JSON.stringify(newTasks.map(t => t.id)));
       window.location.href = '01.4-taak-aanmaken.html';
+    }
+
+    function setLoading(on) {
+      document.getElementById('loading-state').classList.toggle('hidden', !on);
+      document.getElementById('import-list').classList.toggle('hidden', on);
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('error-state');
+      el.querySelector('p').textContent = msg;
+      el.classList.remove('hidden');
+    }
+
+    function addDays(dateStr, days) {
+      const d = new Date(dateStr);
+      d.setDate(d.getDate() + days);
+      return d.toISOString().slice(0, 10);
     }
   </script>
 

@@ -43,16 +43,33 @@
 
     <form id="magister-form" onsubmit="handleConnect(event)" class="space-y-5">
 
+      <!-- School field -->
+      <div>
+        <label for="magister-sync-formulier-school-veld"
+               class="block text-sm font-medium text-gray-700 mb-1.5">
+          School (Magister-domein)
+        </label>
+        <div class="flex items-center border border-gray-300 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-primary/30 focus-within:border-primary transition-colors">
+          <input id="magister-sync-formulier-school-veld"
+                 type="text"
+                 autocomplete="off"
+                 placeholder="lmc-vo"
+                 oninput="updateConnectBtn()"
+                 class="flex-1 px-4 py-3 text-sm outline-none bg-transparent">
+          <span class="pr-4 text-xs text-gray-400 whitespace-nowrap">.magister.net</span>
+        </div>
+      </div>
+
       <!-- Username field -->
       <div>
         <label for="magister-sync-formulier-gebruikersnaam-veld"
                class="block text-sm font-medium text-gray-700 mb-1.5">
-          Gebruikersnaam of school e-mail
+          Gebruikersnaam of e-mail
         </label>
         <input id="magister-sync-formulier-gebruikersnaam-veld"
-               type="email"
+               type="text"
                autocomplete="username"
-               placeholder="evelien@school.nl"
+               placeholder="evelien"
                oninput="updateConnectBtn()"
                class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-colors">
       </div>
@@ -89,16 +106,32 @@
 
     </form>
 
+    <p class="mt-6 text-xs text-gray-400 text-center leading-relaxed">
+      Je gegevens worden alleen gebruikt om huiswerk op te halen.<br>
+      Ze worden niet opgeslagen op onze servers.
+    </p>
+
   </main>
 
   <script>
+    const WORKER_URL = 'https://flowstate-proxy.flowstate-evelien.workers.dev';
+
     let showingPassword = false;
 
+    // Pre-fill school from saved settings
+    (async () => {
+      const data = await FS.initData();
+      if (data.settings.magister_school) {
+        document.getElementById('magister-sync-formulier-school-veld').value = data.settings.magister_school;
+      }
+      updateConnectBtn();
+    })();
+
     function updateConnectBtn() {
-      const user = document.getElementById('magister-sync-formulier-gebruikersnaam-veld').value.trim();
-      const pass = document.getElementById('magister-sync-formulier-wachtwoord-veld').value;
-      const btn = document.getElementById('magister-sync-formulier-verbinden-knop');
-      btn.disabled = !(user && pass);
+      const school = document.getElementById('magister-sync-formulier-school-veld').value.trim();
+      const user   = document.getElementById('magister-sync-formulier-gebruikersnaam-veld').value.trim();
+      const pass   = document.getElementById('magister-sync-formulier-wachtwoord-veld').value;
+      document.getElementById('magister-sync-formulier-verbinden-knop').disabled = !(school && user && pass);
     }
 
     function togglePassword() {
@@ -107,39 +140,55 @@
       field.type = showingPassword ? 'text' : 'password';
     }
 
-    function handleConnect(e) {
+    async function handleConnect(e) {
       e.preventDefault();
-      const btn = document.getElementById('magister-sync-formulier-verbinden-knop');
-      const label = document.getElementById('connect-label');
+      const btn     = document.getElementById('magister-sync-formulier-verbinden-knop');
+      const label   = document.getElementById('connect-label');
       const spinner = document.getElementById('connect-spinner');
-      const error = document.getElementById('magister-sync-formulier-foutmelding');
+      const error   = document.getElementById('magister-sync-formulier-foutmelding');
 
-      // State: Loading
+      let school   = document.getElementById('magister-sync-formulier-school-veld').value.trim();
+      const username = document.getElementById('magister-sync-formulier-gebruikersnaam-veld').value.trim();
+      const password = document.getElementById('magister-sync-formulier-wachtwoord-veld').value;
+
+      // Normalise school slug
+      school = school.replace(/\.magister\.net$/, '');
+
       btn.disabled = true;
       label.textContent = 'Verbinden…';
       spinner.classList.remove('hidden');
       error.classList.add('hidden');
 
-      // Simulate Magister API call
-      // In prototype: always succeeds (demo), save email to settings
-      setTimeout(async () => {
-        const email = document.getElementById('magister-sync-formulier-gebruikersnaam-veld').value.trim();
+      try {
+        const resp = await fetch(`${WORKER_URL}/auth`, {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ school, username, password }),
+        });
+        const result = await resp.json();
+
+        if (!resp.ok) {
+          throw new Error(result.error || 'Verbinding mislukt');
+        }
+
+        // Save credentials & token (no password stored)
         const data = await FS.initData();
         data.settings.magister_connected = true;
-        data.settings.magister_email = email;
+        data.settings.magister_school    = school;
+        data.settings.magister_username  = username;
+        data.settings.magister_token     = result.access_token;
+        data.settings.magister_person_id = result.person_id;
+        data.settings.magister_expires_at = result.expires_at;
         FS.saveData(data);
 
-        // Navigate to Import Review with "new" items
         window.location.href = '01.3-import-review.html';
-      }, 1200);
-
-      // Uncomment below to test error state:
-      // setTimeout(() => {
-      //   btn.disabled = false;
-      //   label.textContent = 'Connect →';
-      //   spinner.classList.add('hidden');
-      //   error.classList.remove('hidden');
-      // }, 1200);
+      } catch (err) {
+        error.textContent = err.message;
+        error.classList.remove('hidden');
+        btn.disabled = false;
+        label.textContent = 'Verbinden →';
+        spinner.classList.add('hidden');
+      }
     }
   </script>
 
