@@ -119,6 +119,9 @@ function buildShortlist(tasks, energy, size) {
   const priorityBonus = { high: 40, normal: 0, low: -20 };
   const em = energyMultiplier[energy] || 0.8;
 
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
   const pending = tasks.filter(t => t.status !== 'done' && !t.needs_enrichment);
 
   const scored = pending.map(t => {
@@ -126,7 +129,17 @@ function buildShortlist(tasks, energy, size) {
     const uw = urgencyWeight[urgency];
     const cp = energy === 'low' ? complexityPenalty[t.complexity || 'medium'] : 0;
     const pb = priorityBonus[t.priority || 'normal'];
-    const score = (uw - cp + pb) * em;
+
+    // Session pressure bonus: extra score when sessions/day ratio is tight.
+    // Rule: 1 session per subject per day → pressure = remaining / available_days
+    // Cap at 30 to avoid drowning out other signals.
+    const due = new Date(t.deadline + 'T00:00:00');
+    const availableDays = Math.max(1, Math.ceil((due - today) / (1000 * 60 * 60 * 24)));
+    const remaining = Math.max(0, t.sessions_total - t.sessions_done);
+    const pressure = remaining / availableDays; // >1 = overloaded, ~1 = tight, <0.5 = relaxed
+    const sessionBonus = Math.min(30, Math.round(pressure * 20));
+
+    const score = (uw - cp + pb + sessionBonus) * em;
     return { ...t, urgency, score };
   });
 
@@ -169,7 +182,9 @@ function setTodayEnergy(energy) {
 }
 
 // ── Capacity Warning ─────────────────────────────────────────────────────────
-// Returns a warning string if there's a busy period or a task running short on time
+// Busy period: ≥12 sessions to complete within the next 5 available study days.
+// Rule: max 1 session per subject per day — so 5 days × N subjects = capacity.
+// Also warns when a specific task has fewer available days than sessions needed.
 
 function getCapacityWarning(tasks, settings) {
   const today = new Date();
@@ -180,16 +195,17 @@ function getCapacityWarning(tasks, settings) {
   const dayNames = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
 
   function isAvailable(dateStr) {
-    const d = new Date(dateStr);
+    const d = new Date(dateStr + 'T00:00:00');
     if (recurringBlocked.includes(dayNames[d.getDay()])) return false;
     if (blocked.includes(dateStr)) return false;
     return true;
   }
 
+  // Count available study days between today (inclusive) and a deadline (exclusive)
   function availableDaysUntil(deadline) {
     let count = 0;
     const cur = new Date(today);
-    const due = new Date(deadline);
+    const due = new Date(deadline + 'T00:00:00');
     while (cur < due) {
       if (isAvailable(cur.toISOString().slice(0, 10))) count++;
       cur.setDate(cur.getDate() + 1);
@@ -197,7 +213,9 @@ function getCapacityWarning(tasks, settings) {
     return count;
   }
 
-  // Check if any task has fewer available days than remaining sessions
+  // Per-task check: does any task have fewer available days than sessions remaining?
+  // Also applies the 1-session-per-subject-per-day rule: max 1 session of this
+  // task per day regardless of other tasks.
   for (const t of pending) {
     const remaining = t.sessions_total - t.sessions_done;
     if (remaining <= 0) continue;
@@ -207,12 +225,35 @@ function getCapacityWarning(tasks, settings) {
     }
   }
 
-  // Check busy period: 3+ tasks due within 5 days
-  const fiveDays = new Date(today);
-  fiveDays.setDate(fiveDays.getDate() + 5);
-  const busyness = pending.filter(t => new Date(t.deadline) <= fiveDays).length;
-  if (busyness >= 4) {
-    return `📅 Drukke periode — ${busyness} taken voor ${fiveDays.toLocaleDateString('nl', { weekday: 'long' })}`;
+  // Busy-period check: count how many sessions are forced into the next WINDOW
+  // available study days. A task with R remaining sessions and D total available
+  // days until its deadline MUST complete max(0, R − (D − WINDOW)) sessions
+  // within the window (1 session per subject per day rule).
+  const WINDOW = 5;
+  const BUSY_THRESHOLD = 12;
+
+  // Build list of the next WINDOW available day strings
+  let windowDays = 0;
+  const windowDaySet = new Set();
+  const cur2 = new Date(today);
+  while (windowDays < WINDOW) {
+    const ds = cur2.toISOString().slice(0, 10);
+    if (isAvailable(ds)) { windowDaySet.add(ds); windowDays++; }
+    cur2.setDate(cur2.getDate() + 1);
+  }
+
+  let totalSessions = 0;
+  for (const t of pending) {
+    const remaining = Math.max(0, t.sessions_total - t.sessions_done);
+    if (remaining <= 0) continue;
+    const daysUntilDeadline = availableDaysUntil(t.deadline);
+    const daysAfterWindow = Math.max(0, daysUntilDeadline - WINDOW);
+    const sessionsInWindow = Math.max(0, remaining - daysAfterWindow);
+    totalSessions += sessionsInWindow;
+  }
+
+  if (totalSessions >= BUSY_THRESHOLD) {
+    return `📅 Drukke periode — ${totalSessions} sessies in ${WINDOW} dagen`;
   }
 
   return null;
