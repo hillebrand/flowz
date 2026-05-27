@@ -7,7 +7,9 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5' } } } }</script>
   <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
   <script src="shared/app.js"></script>
+  <script src="shared/modal.js"></script>
 </head>
 <body class="bg-white min-h-screen flex flex-col">
 
@@ -143,6 +145,15 @@
       <div id="no-materials" class="hidden text-xs text-gray-300 italic">Geen benodigdheden toegevoegd</div>
     </div>
 
+    <!-- Section: Taak afronden -->
+    <div id="complete-section" class="mb-6">
+      <button id="taak-detail-afronden-knop"
+              onclick="completeTask()"
+              class="w-full border-2 border-green-400 text-green-600 hover:bg-green-50 font-semibold py-3.5 rounded-2xl text-sm transition-all active:scale-98">
+        ✓ Taak afronden
+      </button>
+    </div>
+
   </main>
 
   <script>
@@ -254,9 +265,60 @@
           `<span class="bg-gray-100 text-gray-600 text-xs px-3 py-1.5 rounded-full">${m}</span>`
         ).join('');
       }
+
+      // Complete section: hide if already done
+      const completeSection = document.getElementById('complete-section');
+      if (task.status === 'done') {
+        completeSection.innerHTML = `
+          <div class="bg-green-50 border border-green-200 rounded-2xl px-4 py-3 flex items-center gap-3">
+            <span class="text-green-500 text-xl">✓</span>
+            <span class="text-sm text-green-700 font-medium">Taak afgerond!</span>
+            <button onclick="reopenTask()" class="ml-auto text-xs text-gray-400 hover:text-gray-600 transition-colors underline">Heropenen</button>
+          </div>`;
+      } else {
+        completeSection.innerHTML = `
+          <button id="taak-detail-afronden-knop"
+                  onclick="completeTask()"
+                  class="w-full border-2 border-green-400 text-green-600 hover:bg-green-50 font-semibold py-3.5 rounded-2xl text-sm transition-all active:scale-98">
+            ✓ Taak afronden
+          </button>`;
+      }
     }
 
-    function startSession() {
+    async function completeTask() {
+      const data = FS.loadData();
+      const task = data.tasks.find(t => t.id === taskId);
+      if (!task || task.status === 'done') return;
+
+      const pendingSubs = (task.subtasks || []).filter(s => !s.done);
+      let msg = `"${task.title}" markeren als afgerond?`;
+      if (pendingSubs.length > 0) {
+        msg = `Er ${pendingSubs.length === 1 ? 'is nog 1 deeltaak' : `zijn nog ${pendingSubs.length} deeltaken`} niet afgerond.\n\nToch afronden?`;
+      }
+
+      const confirmed = await FS_Modal.showConfirm(msg, { confirmLabel: '✓ Ja, afronden', cancelLabel: 'Annuleren' });
+      if (!confirmed) return;
+
+      task.status = 'done';
+      const today = new Date().toISOString().slice(0, 10);
+      data.sessions_log = data.sessions_log || [];
+      data.sessions_log.push({ task_id: taskId, date: today });
+      if (!data.study_days) data.study_days = [];
+      if (!data.study_days.includes(today)) data.study_days.push(today);
+      FS.saveData(data);
+      renderTask();
+    }
+
+    async function reopenTask() {
+      const confirmed = await FS_Modal.showConfirm('Taak heropenen?', { confirmLabel: 'Heropenen', cancelLabel: 'Annuleren' });
+      if (!confirmed) return;
+      const data = FS.loadData();
+      const task = data.tasks.find(t => t.id === taskId);
+      if (!task) return;
+      task.status = 'pending';
+      FS.saveData(data);
+      renderTask();
+    }
       const data = FS.loadData();
       const task = data.tasks.find(t => t.id === taskId);
       if (!task || task.sessions_done >= task.sessions_total) return;
@@ -314,11 +376,13 @@
         form.classList.remove('hidden');
         subtaskSection.classList.add('hidden');
         materialsSection.classList.add('hidden');
+        document.getElementById('complete-section').classList.add('hidden');
         btn.textContent = '✕ Annuleren';
       } else {
         form.classList.add('hidden');
         subtaskSection.classList.remove('hidden');
         materialsSection.classList.remove('hidden');
+        document.getElementById('complete-section').classList.remove('hidden');
         btn.textContent = '✏ Bewerken';
       }
     }
@@ -354,10 +418,10 @@
       });
     }
 
-    function addEditSubtask() {
-      const title = prompt('Deeltaaknaam:');
-      if (!title?.trim()) return;
-      editSubtasks.push({ id: 'sub_' + Date.now(), title: title.trim(), done: false });
+    async function addEditSubtask() {
+      const title = await FS_Modal.showInput('Deeltaaknaam:', { placeholder: 'bijv. Bronnen zoeken' });
+      if (!title) return;
+      editSubtasks.push({ id: 'sub_' + Date.now(), title, done: false });
       renderEditSubtasks();
     }
 
@@ -373,10 +437,10 @@
 
     function removeEditSubtask(i) { editSubtasks.splice(i, 1); renderEditSubtasks(); }
 
-    function addEditMaterial() {
-      const m = prompt('Benodigdheid (bijv. boek, rekenmachine):');
-      if (!m?.trim()) return;
-      editMaterials.push(m.trim());
+    async function addEditMaterial() {
+      const m = await FS_Modal.showInput('Benodigdheid toevoegen:', { placeholder: 'bijv. leerboek, rekenmachine' });
+      if (!m) return;
+      editMaterials.push(m);
       renderEditMaterials();
     }
 
@@ -413,8 +477,9 @@
       renderTask();
     }
 
-    function deleteTask() {
-      if (!confirm('Taak verwijderen? Dit kan niet ongedaan worden gemaakt.')) return;
+    async function deleteTask() {
+      const confirmed = await FS_Modal.showConfirm('Taak verwijderen?\nDit kan niet ongedaan worden gemaakt.', { confirmLabel: 'Verwijderen', cancelLabel: 'Annuleren', danger: true });
+      if (!confirmed) return;
       const data = FS.loadData();
       data.tasks = data.tasks.filter(t => t.id !== taskId);
       FS.saveData(data);

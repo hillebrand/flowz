@@ -34,6 +34,12 @@ function injectNav(activePage) {
           </a>
         </li>
         <li>
+          <a href="05.1-afgeronde-taken.html"
+             class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors ${activePage === 'done' ? 'bg-indigo-50 text-indigo-700 font-medium' : ''}">
+            <span>✓</span> Afgerond
+          </a>
+        </li>
+        <li>
           <a href="04.1-instellingen.html"
              class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors ${activePage === 'settings' ? 'bg-indigo-50 text-indigo-700 font-medium' : ''}">
             <span>⚙️</span> Instellingen

@@ -211,7 +211,7 @@ function getCapacityWarning(tasks, settings) {
   const fiveDays = new Date(today);
   fiveDays.setDate(fiveDays.getDate() + 5);
   const busyness = pending.filter(t => new Date(t.deadline) <= fiveDays).length;
-  if (busyness >= 3) {
+  if (busyness >= 4) {
     return `📅 Drukke periode — ${busyness} taken voor ${fiveDays.toLocaleDateString('nl', { weekday: 'long' })}`;
   }
 

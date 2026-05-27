@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlowState — Afgeronde taken</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5' } } } }</script>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <script src="shared/app.js"></script>
+  <script src="shared/modal.js"></script>
+  <script src="shared/nav.js"></script>
+</head>
+<body class="bg-gray-50 min-h-screen flex flex-col">
+
+  <!-- App Header -->
+  <header class="bg-white flex items-center px-4 py-4 border-b border-gray-100 sticky top-0 z-30">
+    <button onclick="openNav()" class="text-gray-600 hover:text-gray-900 text-xl w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors">☰</button>
+    <span class="flex-1 text-center font-bold text-gray-900">✦ FlowState</span>
+    <a href="04.1-instellingen.html" class="text-gray-600 hover:text-gray-900 text-xl w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors">👤</a>
+  </header>
+
+  <main class="flex-1 px-4 py-4 max-w-sm mx-auto w-full pb-24">
+
+    <div class="flex items-center gap-2 mb-5 px-1">
+      <span class="text-xs font-bold tracking-widest text-gray-400">✓ AFGERONDE TAKEN</span>
+      <div class="flex-1 h-px bg-gray-200"></div>
+    </div>
+
+    <!-- Empty state -->
+    <div id="empty-state" class="hidden text-center py-16">
+      <div class="text-4xl mb-3">🏆</div>
+      <p class="text-gray-500 text-sm">Nog geen afgeronde taken.<br>Ga aan de slag!</p>
+    </div>
+
+    <!-- Task list -->
+    <div id="done-list" class="space-y-2"></div>
+
+  </main>
+
+  <script>
+    injectNav('done');
+
+    (async function() {
+      await FS.initData();
+      render();
+    })();
+
+    function render() {
+      const data = FS.loadData();
+      const done = data.tasks.filter(t => t.status === 'done');
+
+      if (done.length === 0) {
+        document.getElementById('empty-state').classList.remove('hidden');
+        document.getElementById('done-list').classList.add('hidden');
+        return;
+      }
+
+      // Sort: most recently completed first (use deadline as proxy)
+      done.sort((a, b) => (b.deadline || '') > (a.deadline || '') ? 1 : -1);
+
+      document.getElementById('done-list').innerHTML = done.map(t => `
+        <div class="flex items-center gap-3 bg-white rounded-2xl px-4 py-4 shadow-sm border border-gray-100 opacity-70">
+          <div class="w-6 h-6 rounded-full bg-green-100 text-green-500 flex items-center justify-center flex-shrink-0 text-xs font-bold">✓</div>
+          <div class="flex-1 min-w-0">
+            <a href="03.1-taak-detail.html?id=${t.id}" class="text-sm font-medium text-gray-700 line-through truncate block">${t.title}</a>
+            <div class="text-xs text-gray-400 mt-0.5">${t.subject} · ingeleverd ${FS.formatDeadline(t.deadline)}</div>
+          </div>
+          <button onclick="reopenTask('${t.id}')"
+                  class="text-xs text-primary hover:text-primary-dark font-medium transition-colors flex-shrink-0">
+            Heropenen
+          </button>
+        </div>
+      `).join('');
+    }
+
+    async function reopenTask(id) {
+      const data = FS.loadData();
+      const task = data.tasks.find(t => t.id === id);
+      if (!task) return;
+
+      const confirmed = await FS_Modal.showConfirm(
+        `"${task.title}" heropenen?`,
+        { confirmLabel: 'Heropenen', cancelLabel: 'Annuleren' }
+      );
+      if (!confirmed) return;
+
+      task.status = 'pending';
+      FS.saveData(data);
+      render();
+    }
+  </script>
+</body>
+</html>

@@ -7,6 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5' } } } }</script>
   <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
   <script src="shared/app.js"></script>
   <style>
     .timer-ring { transform: rotate(-90deg); transform-origin: 50% 50%; }
@@ -65,7 +66,39 @@
     let totalSeconds = 0;
     let remaining = 0;
     let timerInterval = null;
+    let sessionEndTime = null; // absolute timestamp when timer should reach 0
     const CIRCUMFERENCE = 2 * Math.PI * 44; // ≈ 276.46
+    const SESSION_END_KEY = 'flowstate_session_end';
+
+    // WakeLock: keep screen alive during study session
+    let wakeLock = null;
+    async function requestWakeLock() {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLock = await navigator.wakeLock.request('screen');
+        }
+      } catch (e) { /* not supported or denied — graceful degradation */ }
+    }
+    function releaseWakeLock() {
+      if (wakeLock) { wakeLock.release().catch(() => {}); wakeLock = null; }
+    }
+    // Re-acquire wake lock when page becomes visible again
+    document.addEventListener('visibilitychange', async () => {
+      if (document.visibilityState === 'visible') {
+        await requestWakeLock();
+        // Recalculate remaining time from stored end timestamp
+        if (sessionEndTime) {
+          remaining = Math.max(0, Math.round((sessionEndTime - Date.now()) / 1000));
+          if (remaining <= 0) {
+            clearInterval(timerInterval);
+            updateDisplay();
+            setTimeout(completeSession, 500);
+          } else {
+            updateDisplay();
+          }
+        }
+      }
+    });
 
     (async function() {
       await FS.initData();
@@ -84,7 +117,19 @@
       // Duration from settings
       const settings = data.settings || {};
       totalSeconds = (settings.session_length_min || 45) * 60;
-      remaining = totalSeconds;
+
+      // Restore end time if page was reloaded (e.g. after sleep)
+      const storedEnd = sessionStorage.getItem(SESSION_END_KEY);
+      if (storedEnd) {
+        sessionEndTime = parseInt(storedEnd, 10);
+        remaining = Math.max(0, Math.round((sessionEndTime - Date.now()) / 1000));
+      } else {
+        sessionEndTime = Date.now() + totalSeconds * 1000;
+        sessionStorage.setItem(SESSION_END_KEY, String(sessionEndTime));
+        remaining = totalSeconds;
+      }
+
+      await requestWakeLock();
 
       updateDisplay();
       renderCurrentSubtask(task);
@@ -157,6 +202,8 @@
     }
 
     function completeSession() {
+      releaseWakeLock();
+      sessionStorage.removeItem(SESSION_END_KEY);
       // Mark session as done
       const data = FS.loadData();
       const task = data.tasks.find(t => t.id === taskId);

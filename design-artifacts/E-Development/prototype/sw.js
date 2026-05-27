@@ -1,8 +1,9 @@
 // FlowState Service Worker — offline-first caching
 
-const CACHE_NAME = 'flowstate-v3';
+const CACHE_NAME = 'flowstate-v4';
 
 const PRECACHE = [
+  '/',
   'index.html',
   '01.1-welkomst.html',
   '01.2-magister-sync.html',
@@ -21,8 +22,9 @@ const PRECACHE = [
   '04.2-beschikbaarheid.html',
   'shared/app.js',
   'shared/nav.js',
-  'data/demo-data.json',
   'manifest.json',
+  'icon-192.png',
+  'icon-512.png',
 ];
 
 self.addEventListener('install', event => {

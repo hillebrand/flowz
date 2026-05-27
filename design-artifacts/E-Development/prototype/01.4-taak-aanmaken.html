@@ -7,7 +7,9 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5' } } } }</script>
   <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
   <script src="shared/app.js"></script>
+  <script src="shared/modal.js"></script>
 </head>
 <body class="bg-white min-h-screen flex flex-col">
 
@@ -224,10 +226,10 @@
       });
     }
 
-    function addSubtask() {
-      const title = prompt('Deeltaaknaam:');
-      if (!title?.trim()) return;
-      subtasks.push({ id: 'sub_' + Date.now(), title: title.trim(), done: false });
+    async function addSubtask() {
+      const title = await FS_Modal.showInput('Deeltaaknaam:', { placeholder: 'bijv. Bronnen zoeken' });
+      if (!title) return;
+      subtasks.push({ id: 'sub_' + Date.now(), title, done: false });
       renderSubtasks();
     }
 
@@ -243,10 +245,10 @@
 
     function removeSubtask(i) { subtasks.splice(i, 1); renderSubtasks(); }
 
-    function addMaterial() {
-      const m = prompt('Benodigdheid (bijv. boek, rekenmachine):');
-      if (!m?.trim()) return;
-      materials.push(m.trim());
+    async function addMaterial() {
+      const m = await FS_Modal.showInput('Benodigdheid toevoegen:', { placeholder: 'bijv. leerboek, rekenmachine' });
+      if (!m) return;
+      materials.push(m);
       renderMaterials();
     }
 
