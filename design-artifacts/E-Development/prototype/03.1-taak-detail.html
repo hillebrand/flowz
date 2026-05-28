@@ -319,6 +319,8 @@
       FS.saveData(data);
       renderTask();
     }
+
+    function startSession() {
       const data = FS.loadData();
       const task = data.tasks.find(t => t.id === taskId);
       if (!task || task.sessions_done >= task.sessions_total) return;

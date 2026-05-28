@@ -175,6 +175,7 @@
 
       // Fill form
       document.getElementById('taak-aanmaken-basisgegevens-taaknaam-veld').value = task.title;
+      document.getElementById('taak-aanmaken-basisgegevens-omschrijving-veld').value = task.description || '';
       const subjectSel = document.getElementById('taak-aanmaken-basisgegevens-vak-selector');
       for (let opt of subjectSel.options) if (opt.value === task.subject) { opt.selected = true; break; }
       const deadlineInput = document.getElementById('taak-aanmaken-basisgegevens-deadline-input');
@@ -284,13 +285,16 @@
     }
 
     function cancelTask() {
-      // Discard unsaved changes — navigate back without deleting the task
-      // Clean up empty tasks (title still blank) that were just created via FAB
+      // Clear the enrichment queue entirely — skip all remaining tasks
+      sessionStorage.removeItem('enrichment_queue');
+      // Clean up tasks that are still empty (e.g. created via FAB, never given a title)
       const data = FS.loadData();
-      const task = data.tasks.find(t => t.id === currentTaskId);
-      if (task && !task.title.trim() && task.needs_enrichment) {
-        // Truly empty new task — safe to remove
-        data.tasks = data.tasks.filter(t => t.id !== currentTaskId);
+      const emptyIds = queue.slice(queueIndex).filter(id => {
+        const t = data.tasks.find(t => t.id === id);
+        return t && !t.title.trim() && t.needs_enrichment;
+      });
+      if (emptyIds.length > 0) {
+        data.tasks = data.tasks.filter(t => !emptyIds.includes(t.id));
         FS.saveData(data);
       }
       window.location.href = FS.getTodayEnergy() ? '02.2-shortlist-vandaag.html' : '01.5-takenoverzicht.html';

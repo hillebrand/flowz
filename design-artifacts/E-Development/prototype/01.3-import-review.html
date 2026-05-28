@@ -112,12 +112,20 @@
 
         if (!resp.ok) throw new Error(result.error || 'Ophalen mislukt');
 
-        // Filter out already-imported items
         const imported = new Set(data.tasks.filter(t => t.magister_id).map(t => t.magister_id));
         items = result.assignments.filter(a => !imported.has(a.id));
 
+        console.log('[Magister debug]', result._debug, 'total assignments:', result.assignments?.length, 'after filter:', items.length);
+
         if (items.length === 0) {
+          const total = result.assignments?.length ?? 0;
+          const alreadyIn = total - items.length;
+          let debugMsg = total === 0
+            ? 'Magister gaf 0 items terug.'
+            : `Magister gaf ${total} items terug, maar ${alreadyIn} ${alreadyIn === 1 ? 'is' : 'zijn'} al geïmporteerd.`;
           document.getElementById('empty-state').classList.remove('hidden');
+          document.getElementById('empty-state').querySelector('p').innerHTML =
+            'Je bent helemaal bij!<br>Geen nieuw huiswerk.<br><span class="text-xs text-gray-400 mt-1 block">' + debugMsg + '</span>';
           document.getElementById('import-list').classList.add('hidden');
           document.getElementById('import-review-acties-import-knop').closest('div').classList.add('hidden');
           document.getElementById('import-review-header-aantal-label').textContent = '0 items gevonden';
@@ -181,6 +189,7 @@
         id:               'mg_' + Date.now() + '_' + i.id,
         title:            i.title,
         subject:          i.subject,
+        description:      i.description || '',
         deadline:         i.deadline,
         sessions_total:   1,
         sessions_done:    0,

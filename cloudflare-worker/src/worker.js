@@ -195,7 +195,15 @@ async function handleHomework(url) {
     })
     .sort((a, b) => a.deadline.localeCompare(b.deadline));
 
-  return json({ assignments });
+  return json({
+    assignments,
+    _debug: {
+      afspraken_total: (afsprRaw.Items ?? []).length,
+      afspraken_matched: fromAppointments.length,
+      opdrachten_total: (opdrRaw.Items ?? []).length,
+      opdrachten_matched: fromAssignments.length,
+    },
+  });
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
