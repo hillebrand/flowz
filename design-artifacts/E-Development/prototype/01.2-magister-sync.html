@@ -150,7 +150,7 @@
   <script>
     // Bookmarklet code (minified, runs on lmc-vo.magister.net)
     function makeBookmarklet(school) {
-      const code = `(async function(){var h='${school}.magister.net';var k='oidc.user:https://accounts.magister.net:M6-'+h;var o=JSON.parse(sessionStorage.getItem(k)||'null');if(!o||!o.access_token){alert('Log eerst in bij Magister.');return;}try{var r=await fetch('/api/account?noCache=0',{headers:{'Authorization':'Bearer '+o.access_token}});var a=await r.json();var p=a&&a.Persoon&&a.Persoon.Id;window.open('https://flowstate-app.surge.sh/01.3-import-review.html?token='+encodeURIComponent(o.access_token)+'&person_id='+encodeURIComponent(p)+'&school='+encodeURIComponent('${school}'),'_blank');}catch(e){alert('Fout: '+e.message);}})();`;
+      const code = `(async function(){var h='${school}.magister.net';var k='oidc.user:https://accounts.magister.net:M6-'+h;var o=JSON.parse(sessionStorage.getItem(k)||'null');if(!o||!o.access_token){alert('Log eerst in bij Magister.');return;}try{var r=await fetch('/api/account?noCache=0',{headers:{'Authorization':'Bearer '+o.access_token}});var a=await r.json();var p=a&&a.Persoon&&a.Persoon.Id;window.location.href='https://flowstate-app.surge.sh/01.3-import-review.html?token='+encodeURIComponent(o.access_token)+'&person_id='+encodeURIComponent(p)+'&school='+encodeURIComponent('${school}');}catch(e){alert('Fout: '+e.message);}})();`;
       return 'javascript:' + encodeURIComponent(code);
     }
 
