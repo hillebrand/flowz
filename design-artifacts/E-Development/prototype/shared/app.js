@@ -6,28 +6,11 @@ const ENERGY_KEY = 'flowstate_energy_today';
 const SETUP_KEY = 'flowstate_setup_done';
 const DATA_VERSION = 3; // bump to reset stored data on breaking changes
 
-// ── Cloud Sync (JSONBlob) ─────────────────────────────────────────────────────
-const SYNC_BLOB_ID = '019e6583-f28d-72f2-ba8a-0c47b53f9a61';
-const SYNC_URL = `https://jsonblob.com/api/jsonBlob/${SYNC_BLOB_ID}`;
+// ── Cloud Sync (disabled — blob no longer exists) ────────────────────────────
+const SYNC_BLOB_ID = null;
 
-async function fetchCloudData() {
-  try {
-    const res = await fetch(SYNC_URL, { headers: { 'Accept': 'application/json' } });
-    if (!res.ok) return null;
-    return await res.json();
-  } catch (e) {
-    return null;
-  }
-}
-
-function pushCloudData(data) {
-  // Non-blocking — fire and forget
-  fetch(SYNC_URL, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-    body: JSON.stringify(data),
-  }).catch(() => {});
-}
+async function fetchCloudData() { return null; }
+function pushCloudData() {}
 
 // ── Load / Save ──────────────────────────────────────────────────────────────
 
