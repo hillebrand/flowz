@@ -40,6 +40,12 @@ function injectNav(activePage) {
           </a>
         </li>
         <li>
+          <a href="01.2-magister-sync.html"
+             class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors ${activePage === 'magister' ? 'bg-indigo-50 text-indigo-700 font-medium' : ''}">
+            <span>📚</span> Magister importeren
+          </a>
+        </li>
+        <li>
           <a href="04.1-instellingen.html"
              class="flex items-center gap-3 px-4 py-3 rounded-xl text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors ${activePage === 'settings' ? 'bg-indigo-50 text-indigo-700 font-medium' : ''}">
             <span>⚙️</span> Instellingen
