@@ -8,7 +8,7 @@
   <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5' } } } }</script>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <script src="shared/app.js"></script>
+  <script src="shared/app.js?v=7"></script>
   <script src="shared/nav.js"></script>
 </head>
 <body class="bg-gray-50 min-h-screen flex flex-col">
@@ -27,46 +27,24 @@
 
   <main class="flex-1 px-4 py-6 max-w-sm mx-auto w-full space-y-4">
 
-    <!-- Section: Magister -->
+    <!-- Section: Profiel -->
     <div class="bg-white rounded-2xl px-5 py-5 shadow-sm border border-gray-100">
-      <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-4">Magister</h3>
-      <div id="magister-connected-state" class="hidden items-center justify-between">
+      <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-4">Profiel</h3>
+      <div class="space-y-3">
         <div>
-          <div id="instellingen-magister-verbinding-magister-account" class="text-sm font-medium text-gray-800"></div>
-          <div class="text-xs text-green-500 font-medium">✓ Verbonden</div>
+          <label class="block text-xs text-gray-400 mb-1">Voornaam</label>
+          <input id="instellingen-profiel-naam"
+                 type="text" autocomplete="given-name" placeholder="Jouw naam"
+                 class="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary">
         </div>
-        <button id="instellingen-magister-verbinding-reconnect-knop"
-                onclick="goReconnect()"
-                class="text-xs text-primary border border-primary/30 px-3 py-1.5 rounded-xl hover:bg-primary/5">
-          Opnieuw verbinden
-        </button>
-      </div>
-      <div id="magister-disconnected-state" class="flex items-center justify-between">
-        <span class="text-sm text-gray-400">Niet verbonden</span>
-        <button onclick="goReconnect()"
-                class="text-xs bg-primary text-white px-4 py-2 rounded-xl font-medium">
-          Verbinden →
-        </button>
+        <div>
+          <label class="block text-xs text-gray-400 mb-1">E-mailadres</label>
+          <div id="instellingen-profiel-email" class="text-sm text-gray-500 px-1 py-2"></div>
+        </div>
       </div>
     </div>
 
-    <!-- Section: Shortlist -->
-    <div class="bg-white rounded-2xl px-5 py-5 shadow-sm border border-gray-100">
-      <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-4">Dagelijks taaklimiet</h3>
-      <div class="flex items-center justify-between mb-2">
-        <span class="text-sm text-gray-700">Taken per dag zichtbaar</span>
-        <span id="shortlist-val" class="text-sm font-bold text-primary">3</span>
-      </div>
-      <div class="flex items-center gap-3">
-        <input id="instellingen-studeersessie-shortlist-grootte-stepper"
-               type="range" min="1" max="5" value="3"
-               oninput="document.getElementById('shortlist-val').textContent = this.value"
-               class="flex-1 accent-primary">
-        <span class="text-xs text-gray-400 w-12 text-right">1 – 5</span>
-      </div>
-    </div>
-
-    <!-- Section: Sessieduur -->
+    <!-- Section: Studiesessies -->
     <div class="bg-white rounded-2xl px-5 py-5 shadow-sm border border-gray-100">
       <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-4">Studiesessies</h3>
       <div class="flex items-center justify-between mb-3">
@@ -130,6 +108,15 @@
       Instellingen opslaan
     </button>
 
+    <!-- Section: Account -->
+    <div class="bg-white rounded-2xl px-5 py-5 shadow-sm border border-gray-100">
+      <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-4">Account</h3>
+      <button onclick="logout()"
+              class="text-sm text-red-500 hover:text-red-600 transition-colors">
+        Uitloggen
+      </button>
+    </div>
+
   </main>
 
   <script>
@@ -139,27 +126,18 @@
       const data = await FS.initData();
       const s = data.settings;
 
-      // Magister state
-      if (s.magister_connected && s.magister_email) {
-        document.getElementById('magister-connected-state').classList.remove('hidden');
-        document.getElementById('magister-connected-state').classList.add('flex');
-        document.getElementById('magister-disconnected-state').classList.add('hidden');
-        document.getElementById('instellingen-magister-verbinding-magister-account').textContent =
-          s.magister_email;
-      }
-
-      // Shortlist
-      const shortlistInput = document.getElementById('instellingen-studeersessie-shortlist-grootte-stepper');
-      shortlistInput.value = s.shortlist_size || 3;
-      document.getElementById('shortlist-val').textContent = s.shortlist_size || 3;
+      // Profiel
+      document.getElementById('instellingen-profiel-naam').value = s.name || '';
+      document.getElementById('instellingen-profiel-email').textContent =
+        s.email || localStorage.getItem('flowstate_user_email') || '';
 
       // Sessieduur
-      const durationSelect = document.getElementById('instellingen-studeersessie-sessieduur-dropdown');
-      durationSelect.value = String(s.session_length_min || 60);
+      document.getElementById('instellingen-studeersessie-sessieduur-dropdown').value =
+        String(s.session_length_min || 60);
 
       // Pauzetijd
-      const breakSelect = document.getElementById('instellingen-studeersessie-pauzetijd-dropdown');
-      breakSelect.value = String(s.break_length_min || 10);
+      document.getElementById('instellingen-studeersessie-pauzetijd-dropdown').value =
+        String(s.break_length_min || 10);
 
       // Herinneringen
       const toggle = document.getElementById('instellingen-herinneringen-herinnering-toggle');
@@ -185,16 +163,18 @@
       }
     }
 
-    function saveSettings() {
+    async function saveSettings() {
       const data = FS.loadData();
-      data.settings.shortlist_size = parseInt(document.getElementById('instellingen-studeersessie-shortlist-grootte-stepper').value);
+      data.settings.name = document.getElementById('instellingen-profiel-naam').value.trim();
       data.settings.session_length_min = parseInt(document.getElementById('instellingen-studeersessie-sessieduur-dropdown').value);
       data.settings.break_length_min = parseInt(document.getElementById('instellingen-studeersessie-pauzetijd-dropdown').value);
       data.settings.reminder_enabled = document.getElementById('instellingen-herinneringen-herinnering-toggle').checked;
       data.settings.reminder_time = document.getElementById('instellingen-herinneringen-tijdpicker').value;
-      FS.saveData(data);
+      data._updated_at = Date.now();
+      localStorage.setItem('flowstate_data', JSON.stringify(data));
+      // await the cloud push so data is safely stored before the toast disappears
+      await FS.pushCloudData(data);
 
-      // Toast
       const toast = document.getElementById('save-toast');
       toast.classList.remove('opacity-0');
       toast.classList.add('opacity-100');
@@ -204,8 +184,13 @@
       }, 2000);
     }
 
-    function goReconnect() {
-      window.location.href = '01.2-magister-sync.html';
+    function logout() {
+      FS.clearAuthToken();
+      localStorage.removeItem('flowstate_data');
+      localStorage.removeItem('flowstate_setup_done');
+      localStorage.removeItem('flowstate_energy_today');
+      localStorage.removeItem('flowstate_user_email');
+      window.location.replace('00.1-login.html');
     }
   </script>
 </body>

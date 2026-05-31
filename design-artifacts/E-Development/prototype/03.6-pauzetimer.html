@@ -8,7 +8,7 @@
   <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5' } } } }</script>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <script src="shared/app.js"></script>
+  <script src="shared/app.js?v=7"></script>
   <style>
     .timer-ring { transform: rotate(-90deg); transform-origin: 50% 50%; }
   </style>
@@ -55,19 +55,45 @@
     let totalSeconds = 0;
     let remaining = 0;
     let timerInterval = null;
+    let breakEndTime = null; // absolute timestamp when break should reach 0
     const CIRCUMFERENCE = 2 * Math.PI * 44;
+    const BREAK_END_KEY = 'flowstate_break_end';
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && breakEndTime) {
+        remaining = Math.max(0, Math.round((breakEndTime - Date.now()) / 1000));
+        if (remaining <= 0) {
+          remaining = 0;
+          clearInterval(timerInterval);
+          updateDisplay();
+          setTimeout(() => { window.location.href = '02.2-shortlist-vandaag.html'; }, 800);
+        } else {
+          updateDisplay();
+        }
+      }
+    });
 
     (async function() {
       const data = await FS.initData();
       const settings = data.settings || {};
       totalSeconds = (settings.break_length_min || 10) * 60;
-      remaining = totalSeconds;
+
+      const storedEnd = sessionStorage.getItem(BREAK_END_KEY);
+      if (storedEnd) {
+        breakEndTime = parseInt(storedEnd, 10);
+        remaining = Math.max(0, Math.round((breakEndTime - Date.now()) / 1000));
+      } else {
+        breakEndTime = Date.now() + totalSeconds * 1000;
+        sessionStorage.setItem(BREAK_END_KEY, String(breakEndTime));
+        remaining = totalSeconds;
+      }
+
       updateDisplay();
       timerInterval = setInterval(tick, 1000);
     })();
 
     function tick() {
-      remaining--;
+      remaining = Math.max(0, Math.round((breakEndTime - Date.now()) / 1000));
       if (remaining <= 0) {
         remaining = 0;
         clearInterval(timerInterval);
@@ -89,6 +115,7 @@
 
     function skipBreak() {
       clearInterval(timerInterval);
+      sessionStorage.removeItem(BREAK_END_KEY);
       window.location.href = '02.2-shortlist-vandaag.html';
     }
   </script>

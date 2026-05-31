@@ -19,47 +19,35 @@
   </script>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <script src="shared/app.js"></script>
+  <script src="shared/app.js?v=7"></script>
 </head>
 <body class="bg-white min-h-screen flex flex-col">
 
-  <!-- Full-screen welcome layout -->
   <main class="flex-1 flex flex-col items-center justify-center px-8 py-16 text-center">
 
-    <!-- Section: Welkomst -->
-    <div id="welkomst-eerste-start-welkomst-app-logo"
-         class="text-6xl mb-4 select-none" aria-hidden="true">✦</div>
+    <div class="text-6xl mb-4 select-none" aria-hidden="true">✦</div>
 
-    <h1 id="welkomst-eerste-start-welkomst-app-naam"
-        class="text-4xl font-bold text-gray-900 mb-4 tracking-tight">
-      FlowState
-    </h1>
+    <h1 class="text-4xl font-bold text-gray-900 mb-4 tracking-tight">FlowState</h1>
 
-    <h2 id="welkomst-eerste-start-welkomst-tagline"
-        class="text-lg font-normal text-gray-500 mb-16 max-w-xs leading-relaxed">
+    <p class="text-lg font-normal text-gray-500 mb-6 max-w-xs leading-relaxed">
       Jouw studieplanners die met je meedenkt
-    </h2>
+    </p>
 
-    <!-- Section: Acties -->
-    <div class="w-full max-w-xs space-y-4">
+    <p class="text-sm text-gray-400 mb-12 max-w-xs leading-relaxed">
+      Voeg je taken en deadlines toe, dan helpt FlowState je om je studietijd slim in te delen —
+      met pauzes, energiechecks en overzicht.
+    </p>
 
-      <button id="welkomst-eerste-start-acties-handmatig-knop"
-              onclick="skipMagister()"
+    <div class="w-full max-w-xs">
+      <button onclick="start()"
               class="w-full bg-primary hover:bg-primary-dark active:scale-95 text-white font-semibold py-4 px-6 rounded-2xl transition-all duration-150 shadow-lg shadow-indigo-200">
         Aan de slag →
       </button>
-
-      <button onclick="connectMagister()"
-              class="w-full bg-gray-100 hover:bg-gray-200 active:scale-95 text-gray-500 font-medium py-3 px-6 rounded-2xl transition-all duration-150 flex items-center justify-center gap-2 text-sm">
-        <span id="btn-label">Magister koppelen (optioneel)</span>
-        <span id="btn-spinner" class="hidden animate-spin">⟳</span>
-      </button>
-
     </div>
+
   </main>
 
   <script>
-    // Skip if already set up
     (async function() {
       await FS.initData();
       if (FS.isSetupDone()) {
@@ -67,17 +55,7 @@
       }
     })();
 
-    function connectMagister() {
-      const label = document.getElementById('btn-label');
-      const spinner = document.getElementById('btn-spinner');
-      label.textContent = 'Verbinden…';
-      spinner.classList.remove('hidden');
-      setTimeout(() => {
-        window.location.href = '01.2-magister-sync.html';
-      }, 600);
-    }
-
-    function skipMagister() {
+    function start() {
       FS.markSetupDone();
       window.location.href = '01.5-takenoverzicht.html';
     }
