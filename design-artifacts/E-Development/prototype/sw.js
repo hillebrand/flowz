@@ -1,10 +1,12 @@
 // FlowState Service Worker — offline-first caching
 
-const CACHE_NAME = 'flowstate-v5';
+const CACHE_NAME = 'flowstate-v7';
 
 const PRECACHE = [
   '/',
   'index.html',
+  '00.1-login.html',
+  '00.2-registreren.html',
   '01.1-welkomst.html',
   '01.2-magister-sync.html',
   '01.3-import-review.html',
@@ -36,9 +38,17 @@ self.addEventListener('install', event => {
 
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
-    )
+    caches.keys().then(keys => {
+      const toDelete = keys.filter(k => k !== CACHE_NAME);
+      return Promise.all(toDelete.map(k => caches.delete(k))).then(() => {
+        if (toDelete.length > 0) {
+          // Previous version found — reload all open tabs so they get fresh cache
+          return self.clients.matchAll({ type: 'window' }).then(clients => {
+            clients.forEach(client => client.navigate(client.url));
+          });
+        }
+      });
+    })
   );
   self.clients.claim();
 });
