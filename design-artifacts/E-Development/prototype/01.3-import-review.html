@@ -67,25 +67,40 @@
     let selected = new Set();
 
     (async function () {
-      const data = await FS.initData();
-      const s    = data.settings;
-
-      // Accept token passed via URL params from the bookmarklet
-      const urlParams = new URLSearchParams(location.search);
+      // STEP 1: Persist Magister params immediately — BEFORE initData() which may
+      // redirect to the login page, losing the URL params entirely.
+      const urlParams   = new URLSearchParams(location.search);
       const urlToken    = urlParams.get('token');
       const urlPersonId = urlParams.get('person_id');
       const urlSchool   = urlParams.get('school');
 
-      if (urlToken && urlPersonId && urlSchool) {
-        // Save to settings for future use
-        s.magister_connected = true;
-        s.magister_school    = urlSchool;
-        s.magister_token     = urlToken;
-        s.magister_person_id = urlPersonId;
-        s.magister_expires_at = Date.now() + 55 * 60 * 1000; // ~55 min
-        FS.saveData(data);
-        // Clean URL
+      if (urlToken && urlPersonId && urlSchool &&
+          urlPersonId !== 'undefined' && urlPersonId !== 'null') {
+        localStorage.setItem('pending_magister_token',     urlToken);
+        localStorage.setItem('pending_magister_person_id', urlPersonId);
+        localStorage.setItem('pending_magister_school',    urlSchool);
         history.replaceState({}, '', '01.3-import-review.html');
+      }
+
+      // STEP 2: Init app (may redirect to login if unauthenticated).
+      const data = await FS.initData();
+      const s    = data.settings;
+
+      // STEP 3: Apply pending params (present whether we just got them from the
+      // URL or they survived a login-page redirect).
+      const pToken    = localStorage.getItem('pending_magister_token');
+      const pPersonId = localStorage.getItem('pending_magister_person_id');
+      const pSchool   = localStorage.getItem('pending_magister_school');
+      if (pToken && pPersonId && pSchool) {
+        s.magister_connected  = true;
+        s.magister_school     = pSchool;
+        s.magister_token      = pToken;
+        s.magister_person_id  = pPersonId;
+        s.magister_expires_at = Date.now() + 55 * 60 * 1000;
+        FS.saveData(data);
+        localStorage.removeItem('pending_magister_token');
+        localStorage.removeItem('pending_magister_person_id');
+        localStorage.removeItem('pending_magister_school');
       }
 
       if (!s.magister_connected || !s.magister_token) {

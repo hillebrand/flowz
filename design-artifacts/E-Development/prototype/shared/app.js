@@ -6,11 +6,79 @@ const ENERGY_KEY = 'flowstate_energy_today';
 const SETUP_KEY = 'flowstate_setup_done';
 const DATA_VERSION = 3; // bump to reset stored data on breaking changes
 
-// ── Cloud Sync (disabled — blob no longer exists) ────────────────────────────
-const SYNC_BLOB_ID = null;
+// ── Auth ─────────────────────────────────────────────────────────────────────
 
-async function fetchCloudData() { return null; }
-function pushCloudData() {}
+const WORKER_URL = 'https://flowstate-proxy.flowstate-evelien.workers.dev';
+const AUTH_TOKEN_KEY = 'flowstate_auth_token';
+
+function getAuthToken() { return localStorage.getItem(AUTH_TOKEN_KEY); }
+function setAuthToken(token) { localStorage.setItem(AUTH_TOKEN_KEY, token); }
+function clearAuthToken() { localStorage.removeItem(AUTH_TOKEN_KEY); }
+function isLoggedIn() { return !!getAuthToken(); }
+
+// ── Cloud Sync ────────────────────────────────────────────────────────────────
+
+async function fetchCloudData() {
+  const token = getAuthToken();
+  if (!token) return null;
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5000);
+    const r = await fetch(`${WORKER_URL}/data`, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+    if (r.status === 401) { clearAuthToken(); return null; }
+    if (!r.ok) return null;
+    return await r.json();
+  } catch { return null; }
+}
+
+async function fetchCloudEmail() {
+  const token = getAuthToken();
+  if (!token) return null;
+  try {
+    const r = await fetch(`${WORKER_URL}/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!r.ok) return null;
+    const { email } = await r.json();
+    if (email) localStorage.setItem('flowstate_user_email', email);
+    return email;
+  } catch { return null; }
+}
+
+async function pushCloudData(data) {
+  const token = getAuthToken();
+  if (!token) return;
+  try {
+    await fetch(`${WORKER_URL}/data`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+  } catch { /* silent — local save already succeeded */ }
+}
+
+// ── Background sync on visibility change ─────────────────────────────────────
+// When the user switches back to the app (e.g. from desktop to phone), check
+// if cloud has newer data and reload the page if so.
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState !== 'visible') return;
+  if (!getAuthToken()) return;
+  try {
+    const cloud = await fetchCloudData();
+    if (!cloud || (cloud._version || 0) < DATA_VERSION) return;
+    const local = loadData();
+    const cloudTs = cloud._updated_at || 0;
+    const localTs = local ? (local._updated_at || 0) : 0;
+    if (cloudTs > localTs) {
+      localStorage.setItem(APP_KEY, JSON.stringify(cloud));
+      window.location.reload();
+    }
+  } catch { /* silent */ }
+});
 
 // ── Load / Save ──────────────────────────────────────────────────────────────
 
@@ -25,35 +93,66 @@ function loadData() {
 function saveData(data) {
   data._updated_at = Date.now();
   localStorage.setItem(APP_KEY, JSON.stringify(data));
-  pushCloudData(data);
+  pushCloudData(data); // fire-and-forget; cloud failure never blocks local save
 }
 
 async function initData() {
-  let local = loadData();
+  // Redirect to login if not authenticated (except on auth pages themselves)
+  if (!getAuthToken()) {
+    const path = window.location.pathname;
+    if (!path.includes('00.1-login') && !path.includes('00.2-registreren')) {
+      window.location.replace('00.1-login.html');
+      return new Promise(() => {}); // suspend — browser is navigating away
+    }
+  }
 
-  // Reset local if missing or outdated version
-  if (!local || (local._version || 0) < DATA_VERSION) {
+  let local = loadData();
+  const needsFresh = !local || (local._version || 0) < DATA_VERSION;
+
+  // Fetch email from server (token already knows who we are — no need to store it in data)
+  fetchCloudEmail();
+
+  if (needsFresh) {
+    // New device or outdated data — fetch cloud FIRST to avoid overwriting real data
+    const cloud = await fetchCloudData();
+    if (cloud && (cloud._version || 0) >= DATA_VERSION) {
+      const pendingName = localStorage.getItem('flowstate_pending_name');
+      if (pendingName) {
+        cloud.settings.name = pendingName;
+        localStorage.removeItem('flowstate_pending_name');
+        pushCloudData(cloud);
+      }
+      localStorage.setItem(APP_KEY, JSON.stringify(cloud));
+      return cloud;
+    }
+    // No cloud data — brand new account, start fresh
     local = JSON.parse(JSON.stringify(DEMO_DATA));
     local._version = DATA_VERSION;
     local._updated_at = 0;
+    const pendingName = localStorage.getItem('flowstate_pending_name');
+    if (pendingName) {
+      local.settings.name = pendingName;
+      localStorage.removeItem('flowstate_pending_name');
+    }
     localStorage.removeItem(SETUP_KEY);
     localStorage.removeItem(ENERGY_KEY);
     saveData(local);
+    return local;
   }
 
-  // Sync: fetch cloud data and use whichever is newer
+  // Local data exists — sync with cloud
   const cloud = await fetchCloudData();
   if (cloud && (cloud._version || 0) >= DATA_VERSION) {
     const cloudTs = cloud._updated_at || 0;
     const localTs = local._updated_at || 0;
     if (cloudTs > localTs) {
-      // Cloud is newer — update local
       localStorage.setItem(APP_KEY, JSON.stringify(cloud));
       return cloud;
     } else if (localTs > cloudTs) {
-      // Local is newer — push to cloud
       pushCloudData(local);
     }
+  } else if (!cloud) {
+    pushCloudData(local);
   }
 
   return local;
@@ -376,5 +475,6 @@ window.FS = {
   getActiveSession, setActiveSession, clearActiveSession,
   calcStreak,
   getGreeting,
-  navigate
+  navigate,
+  isLoggedIn, getAuthToken, setAuthToken, clearAuthToken, pushCloudData,
 };
