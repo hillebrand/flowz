@@ -102,7 +102,10 @@ async function initData() {
     const path = window.location.pathname;
     if (!path.includes('00.1-login') && !path.includes('00.2-registreren')) {
       window.location.replace('00.1-login.html');
-      return new Promise(() => {}); // suspend — browser is navigating away
+      // Wait briefly for the navigation to commit, then resolve with null
+      // so callers don't hang forever if navigation is slow.
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      return null;
     }
   }
 

@@ -1,6 +1,6 @@
 // FlowState Service Worker — offline-first caching
 
-const CACHE_NAME = 'flowstate-v7';
+const CACHE_NAME = 'flowstate-v8';
 
 const PRECACHE = [
   '/',

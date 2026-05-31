@@ -8,7 +8,7 @@
   <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5' } } } }</script>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <script src="shared/app.js?v=7"></script>
+  <script src="shared/app.js?v=8"></script>
 </head>
 <body class="bg-white min-h-screen flex flex-col">
 
@@ -84,6 +84,8 @@
 
       // STEP 2: Init app (may redirect to login if unauthenticated).
       const data = await FS.initData();
+      // initData() returns null when it redirects to login (browser is navigating away)
+      if (!data) return;
       const s    = data.settings;
 
       // STEP 3: Apply pending params (present whether we just got them from the
@@ -122,8 +124,15 @@
         const to   = addDays(from, 90);
         const url  = `${WORKER_URL}/homework?school=${encodeURIComponent(s.magister_school)}&token=${encodeURIComponent(s.magister_token)}&person_id=${encodeURIComponent(s.magister_person_id)}&from=${from}&to=${to}`;
 
-        const resp   = await fetch(url);
-        const result = await resp.json();
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 15000);
+        let resp, result;
+        try {
+          resp   = await fetch(url, { signal: controller.signal });
+          result = await resp.json();
+        } finally {
+          clearTimeout(timer);
+        }
 
         if (!resp.ok) throw new Error(result.error || 'Ophalen mislukt');
 

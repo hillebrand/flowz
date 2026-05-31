@@ -37,9 +37,28 @@ https://JOUW-GEBRUIKERSNAAM.github.io/flowstate/
 
 ## Cross-device sync
 
-De app synchroniseert automatisch via JSONBlob bij het openen:
-- Wijzigingen op de desktop → zichtbaar op de telefoon na een page refresh
-- Wijzigingen op de telefoon → zichtbaar op de desktop na een page refresh
-- Werkt zonder account of login
+Data wordt automatisch gesynchroniseerd via een account. Elke gebruiker (Evelien, een zusje, een klasgenoot) logt in met eigen e-mailadres en wachtwoord — ieders taken zijn volledig gescheiden.
 
-De gedeelde data staat op blob ID `019e6583-f28d-72f2-ba8a-0c47b53f9a61`.
+**Hoe het werkt:**
+- Bij openen app → login vereist
+- Na inloggen → data wordt opgehaald van de cloud
+- Bij elke opslag (taak toevoegen, sessie afronden, instelling wijzigen) → automatisch naar cloud gestuurd
+- Ander apparaat opent app met zelfde account → haalt nieuwste versie op
+
+**Eenmalige setup voor de Cloudflare Worker (vereist voor sync):**
+
+1. Maak een KV namespace aan in het Cloudflare dashboard:
+   - Ga naar Workers & Pages → KV → Create namespace
+   - Naam: `flowstate-data`
+   - Kopieer de namespace ID
+
+2. Vul de ID in `cloudflare-worker/wrangler.toml`:
+   ```
+   id = "JOUW_KV_NAMESPACE_ID_HIER"
+   ```
+
+3. Deploy de worker opnieuw:
+   ```bash
+   cd cloudflare-worker
+   npx wrangler deploy
+   ```
