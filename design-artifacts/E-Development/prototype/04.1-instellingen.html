@@ -8,7 +8,7 @@
   <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5' } } } }</script>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <script src="shared/app.js?v=12"></script>
+  <script src="shared/app.js?v=13"></script>
   <script src="shared/nav.js"></script>
 </head>
 <body class="bg-gray-50 min-h-screen flex flex-col">
@@ -111,10 +111,68 @@
     <!-- Section: Account -->
     <div class="bg-white rounded-2xl px-5 py-5 shadow-sm border border-gray-100">
       <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-4">Account</h3>
-      <button onclick="logout()"
-              class="text-sm text-red-500 hover:text-red-600 transition-colors">
-        Uitloggen
-      </button>
+      <div class="space-y-4">
+
+        <!-- Change password -->
+        <div>
+          <button onclick="toggleChangePassword()"
+                  id="pw-toggle-btn"
+                  class="text-sm text-gray-700 hover:text-primary transition-colors flex items-center gap-1">
+            Wachtwoord wijzigen <span id="pw-toggle-arrow">›</span>
+          </button>
+          <div id="pw-form" class="hidden mt-4 space-y-3">
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">Huidig wachtwoord</label>
+              <input id="pw-current" type="password" placeholder="••••••••"
+                     class="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary">
+            </div>
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">Nieuw wachtwoord</label>
+              <input id="pw-new" type="password" placeholder="minimaal 8 tekens"
+                     class="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary">
+            </div>
+            <div>
+              <label class="block text-xs text-gray-400 mb-1">Bevestig nieuw wachtwoord</label>
+              <input id="pw-confirm" type="password" placeholder="herhaal wachtwoord"
+                     class="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary">
+            </div>
+            <div id="pw-error" class="hidden text-xs text-red-500 bg-red-50 px-3 py-2 rounded-xl"></div>
+            <div id="pw-success" class="hidden text-xs text-green-600 bg-green-50 px-3 py-2 rounded-xl">✓ Wachtwoord gewijzigd</div>
+            <button onclick="changePassword()"
+                    class="w-full bg-primary hover:bg-primary-dark text-white text-sm font-semibold py-3 rounded-xl transition-all">
+              Wachtwoord opslaan
+            </button>
+          </div>
+        </div>
+
+        <div class="border-t border-gray-100"></div>
+
+        <button onclick="logout()"
+                class="text-sm text-red-500 hover:text-red-600 transition-colors block">
+          Uitloggen
+        </button>
+
+        <button onclick="showDeleteConfirm()"
+                class="text-sm text-red-400 hover:text-red-600 transition-colors block">
+          Account verwijderen
+        </button>
+      </div>
+    </div>
+
+    <!-- Delete account confirmation -->
+    <div id="delete-confirm" class="hidden bg-red-50 border border-red-200 rounded-2xl px-5 py-5 space-y-3">
+      <p class="text-sm font-semibold text-red-700">Account permanent verwijderen?</p>
+      <p class="text-xs text-red-500">Al je taken, instellingen en voortgang worden verwijderd. Dit kan niet ongedaan worden gemaakt.</p>
+      <div class="flex gap-3">
+        <button onclick="hideDeleteConfirm()"
+                class="flex-1 text-sm text-gray-600 border border-gray-200 py-3 rounded-xl hover:bg-gray-50 transition-colors">
+          Annuleren
+        </button>
+        <button onclick="deleteAccount()"
+                class="flex-1 text-sm text-white bg-red-500 hover:bg-red-600 py-3 rounded-xl font-semibold transition-colors">
+          Ja, verwijder
+        </button>
+      </div>
     </div>
 
   </main>
@@ -190,6 +248,82 @@
       localStorage.removeItem('flowstate_setup_done');
       localStorage.removeItem('flowstate_energy_today');
       localStorage.removeItem('flowstate_user_email');
+      window.location.replace('00.1-login.html');
+    }
+
+    function toggleChangePassword() {
+      const form  = document.getElementById('pw-form');
+      const arrow = document.getElementById('pw-toggle-arrow');
+      const open  = form.classList.toggle('hidden');
+      arrow.textContent = open ? '›' : '⌄';
+      if (!open) {
+        document.getElementById('pw-current').value = '';
+        document.getElementById('pw-new').value = '';
+        document.getElementById('pw-confirm').value = '';
+        document.getElementById('pw-error').classList.add('hidden');
+        document.getElementById('pw-success').classList.add('hidden');
+      }
+    }
+
+    async function changePassword() {
+      const current = document.getElementById('pw-current').value;
+      const newPw   = document.getElementById('pw-new').value;
+      const confirm = document.getElementById('pw-confirm').value;
+      const errEl   = document.getElementById('pw-error');
+      const okEl    = document.getElementById('pw-success');
+
+      errEl.classList.add('hidden');
+      okEl.classList.add('hidden');
+
+      if (!current || !newPw || !confirm) { showPwError('Vul alle velden in'); return; }
+      if (newPw.length < 8) { showPwError('Wachtwoord moet minimaal 8 tekens zijn'); return; }
+      if (newPw !== confirm) { showPwError('Wachtwoorden komen niet overeen'); return; }
+
+      try {
+        const r = await fetch(`${FS.WORKER_URL}/change-password`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${FS.getAuthToken()}`,
+          },
+          body: JSON.stringify({ current_password: current, new_password: newPw }),
+        });
+        const body = await r.json();
+        if (!r.ok) { showPwError(body.error || 'Er ging iets mis'); return; }
+        document.getElementById('pw-current').value = '';
+        document.getElementById('pw-new').value = '';
+        document.getElementById('pw-confirm').value = '';
+        okEl.classList.remove('hidden');
+        setTimeout(() => toggleChangePassword(), 2000);
+      } catch {
+        showPwError('Geen verbinding. Probeer het opnieuw.');
+      }
+    }
+
+    function showPwError(msg) {
+      const el = document.getElementById('pw-error');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+    }
+
+    function showDeleteConfirm() {
+      document.getElementById('delete-confirm').classList.remove('hidden');
+      document.getElementById('delete-confirm').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function hideDeleteConfirm() {
+      document.getElementById('delete-confirm').classList.add('hidden');
+    }
+
+    async function deleteAccount() {
+      try {
+        await fetch(`${FS.WORKER_URL}/account`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${FS.getAuthToken()}` },
+        });
+      } catch { /* best-effort — clear local state regardless */ }
+      FS.clearAuthToken();
+      localStorage.clear();
       window.location.replace('00.1-login.html');
     }
   </script>

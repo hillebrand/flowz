@@ -664,5 +664,5 @@ window.FS = {
   showToast, showConfetti, saveTodayPlan, loadTodayPlan,
   getGreeting,
   navigate,
-  isLoggedIn, getAuthToken, setAuthToken, clearAuthToken, pushCloudData,
+  isLoggedIn, getAuthToken, setAuthToken, clearAuthToken, pushCloudData, WORKER_URL,
 };

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FlowState — Nieuw wachtwoord instellen</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5' } } } }</script>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icon-192.png">
+</head>
+<body class="bg-white min-h-screen flex flex-col">
+
+  <header class="flex items-center px-4 py-4 border-b border-gray-100">
+    <div class="w-12"></div>
+    <span class="flex-1 text-center font-bold text-gray-900">✦ FlowState</span>
+    <div class="w-12"></div>
+  </header>
+
+  <main class="flex-1 flex flex-col justify-center px-6 py-10 max-w-sm mx-auto w-full">
+
+    <!-- Invalid token state -->
+    <div id="state-invalid" class="hidden text-center space-y-4">
+      <div class="text-4xl">⛔</div>
+      <p class="text-gray-700 font-semibold">Ongeldige of verlopen link</p>
+      <p class="text-sm text-gray-400">Vraag een nieuwe resetlink aan.</p>
+      <a href="00.3-wachtwoord-vergeten.html" class="block text-sm text-primary hover:underline">Nieuw verzoek →</a>
+    </div>
+
+    <!-- Reset form -->
+    <div id="state-form">
+      <div class="text-center mb-8">
+        <div class="text-4xl mb-3">🔒</div>
+        <h1 class="text-2xl font-bold text-gray-900">Nieuw wachtwoord</h1>
+        <p class="text-sm text-gray-400 mt-1">Kies een nieuw wachtwoord van minimaal 8 tekens.</p>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">Nieuw wachtwoord</label>
+          <input id="new-password"
+                 type="password" autocomplete="new-password" required
+                 placeholder="minimaal 8 tekens"
+                 class="w-full px-4 py-3 rounded-2xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">Bevestig wachtwoord</label>
+          <input id="confirm-password"
+                 type="password" autocomplete="new-password" required
+                 placeholder="herhaal wachtwoord"
+                 class="w-full px-4 py-3 rounded-2xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary">
+        </div>
+
+        <div id="error-msg" class="hidden text-sm text-red-500 bg-red-50 px-4 py-3 rounded-2xl"></div>
+
+        <button type="button" id="submit-btn" onclick="handleSubmit()"
+                class="w-full bg-primary hover:bg-primary-dark text-white font-semibold py-4 rounded-2xl shadow-sm shadow-indigo-200 transition-all active:scale-98 mt-2">
+          Wachtwoord opslaan →
+        </button>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    const WORKER_URL = 'https://flowstate-proxy.flowstate-evelien.workers.dev';
+    const token = new URLSearchParams(location.search).get('token');
+
+    if (!token) {
+      document.getElementById('state-form').classList.add('hidden');
+      document.getElementById('state-invalid').classList.remove('hidden');
+    }
+
+    async function handleSubmit() {
+      const newPw  = document.getElementById('new-password').value;
+      const confPw = document.getElementById('confirm-password').value;
+      const btn    = document.getElementById('submit-btn');
+      const errEl  = document.getElementById('error-msg');
+
+      if (!newPw || !confPw) { showError('Vul beide velden in'); return; }
+      if (newPw.length < 8)  { showError('Wachtwoord moet minimaal 8 tekens zijn'); return; }
+      if (newPw !== confPw)  { showError('Wachtwoorden komen niet overeen'); return; }
+
+      btn.disabled = true;
+      btn.textContent = 'Bezig…';
+      errEl.classList.add('hidden');
+
+      try {
+        const r    = await fetch(`${WORKER_URL}/reset-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, new_password: newPw }),
+        });
+        const body = await r.json();
+        if (!r.ok) {
+          if (r.status === 400 && body.error?.includes('verlopen')) {
+            document.getElementById('state-form').classList.add('hidden');
+            document.getElementById('state-invalid').classList.remove('hidden');
+          } else {
+            showError(body.error || 'Er ging iets mis');
+          }
+          return;
+        }
+        localStorage.setItem('flowstate_auth_token', body.token);
+        window.location.replace('index.html');
+      } catch {
+        showError('Geen verbinding. Probeer het opnieuw.');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Wachtwoord opslaan →';
+      }
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('error-msg');
+      el.textContent = msg;
+      el.classList.remove('hidden');
+    }
+
+    document.getElementById('confirm-password')?.addEventListener('keydown', e => {
+      if (e.key === 'Enter') handleSubmit();
+    });
+  </script>
+</body>
+</html>

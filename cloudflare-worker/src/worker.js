@@ -1,29 +1,49 @@
 /**
- * FlowState — Magister API proxy
- * Handles CORS and the Magister challenge-based OIDC auth flow.
+ * FlowState — Magister API proxy + user auth + data sync
  *
  * Routes:
- *   POST /auth      { school, username, password } → { access_token, person_id, expires_at }
- *   GET  /homework  ?school=&token=&person_id=&from=&to= → { assignments: [...] }
+ *   POST /auth             { school, username, password } → { access_token, person_id, expires_at }
+ *   GET  /homework         ?school=&token=&person_id=&from=&to= → { assignments: [...] }
+ *   POST /register         { email, password } → { token, expires_at }
+ *   POST /login            { email, password } → { token, expires_at }
+ *   POST /forgot-password  { email } → { ok: true }
+ *   POST /reset-password   { token, new_password } → { token, expires_at }
+ *   POST /change-password  (Bearer) { current_password, new_password } → { ok: true }
+ *   DELETE /account        (Bearer) → { ok: true }
+ *   GET  /me               (Bearer) → { email }
+ *   GET  /data             (Bearer) → data blob
+ *   PUT  /data             (Bearer) + body → saved
+ *
+ * KV bindings required (wrangler.toml):
+ *   FLOWSTATE_KV — stores user accounts, sessions, and data blobs
  */
 
 const ALLOWED_ORIGIN = 'https://flowstate-app.surge.sh';
 
 const CORS = {
   'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   'Access-Control-Max-Age': '86400',
 };
 
 export default {
-  async fetch(request) {
+  async fetch(request, env) {
     if (request.method === 'OPTIONS') return new Response(null, { headers: CORS });
 
     const url = new URL(request.url);
     try {
-      if (url.pathname === '/auth' && request.method === 'POST') return handleAuth(request);
-      if (url.pathname === '/homework' && request.method === 'GET')  return handleHomework(url);
+      if (url.pathname === '/auth'            && request.method === 'POST')   return handleAuth(request);
+      if (url.pathname === '/homework'        && request.method === 'GET')    return handleHomework(url);
+      if (url.pathname === '/register'        && request.method === 'POST')   return handleRegister(request, env);
+      if (url.pathname === '/login'           && request.method === 'POST')   return handleLogin(request, env);
+      if (url.pathname === '/forgot-password' && request.method === 'POST')   return handleForgotPassword(request, env);
+      if (url.pathname === '/reset-password'  && request.method === 'POST')   return handleResetPassword(request, env);
+      if (url.pathname === '/change-password' && request.method === 'POST')   return handleChangePassword(request, env);
+      if (url.pathname === '/account'         && request.method === 'DELETE') return handleDeleteAccount(request, env);
+      if (url.pathname === '/me'              && request.method === 'GET')    return handleMe(request, env);
+      if (url.pathname === '/data'            && request.method === 'GET')    return handleGetData(request, env);
+      if (url.pathname === '/data'            && request.method === 'PUT')    return handlePutData(request, env);
       return json({ error: 'Not found' }, 404);
     } catch (e) {
       return json({ error: e.message }, 500);
@@ -169,7 +189,7 @@ async function handleHomework(url) {
       title:       a.Omschrijving || stripHtml(a.Inhoud) || 'Huiswerk',
       subject:     a.Vakken?.[0]?.Naam ?? '',
       deadline:    a.Einde.slice(0, 10),
-      description: a.Inhoud ?? '',
+      description: stripHtml(a.Inhoud ?? ''),
       type:        INFO_LABELS[a.InfoType] ?? 'Huiswerk',
     }));
 
@@ -180,7 +200,7 @@ async function handleHomework(url) {
       title:       a.Titel || a.Omschrijving || 'Opdracht',
       subject:     a.Vak ?? '',
       deadline:    a.InleverenVoor.slice(0, 10),
-      description: a.Omschrijving ?? '',
+      description: stripHtml(a.Omschrijving ?? ''),
       type:        'Opdracht',
     }));
 
@@ -204,6 +224,156 @@ async function handleHomework(url) {
       opdrachten_matched: fromAssignments.length,
     },
   });
+}
+
+// ─── User auth ───────────────────────────────────────────────────────────────
+
+async function hashPassword(password) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations: 100_000, hash: 'SHA-256' }, key, 256);
+  return {
+    hash: btoa(String.fromCharCode(...new Uint8Array(bits))),
+    salt: btoa(String.fromCharCode(...salt)),
+  };
+}
+
+async function verifyPassword(password, storedHash, storedSalt) {
+  const salt = Uint8Array.from(atob(storedSalt), c => c.charCodeAt(0));
+  const key = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveBits']);
+  const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations: 100_000, hash: 'SHA-256' }, key, 256);
+  return btoa(String.fromCharCode(...new Uint8Array(bits))) === storedHash;
+}
+
+async function createSession(env, email) {
+  const token = crypto.randomUUID();
+  const expires_at = Date.now() + 30 * 24 * 60 * 60 * 1000; // 30 days
+  await env.FLOWSTATE_KV.put(
+    `session:${token}`,
+    JSON.stringify({ email, expires_at }),
+    { expiration: Math.floor(expires_at / 1000) },
+  );
+  return { token, expires_at };
+}
+
+async function resolveToken(request, env) {
+  const auth = request.headers.get('Authorization') || '';
+  const token = auth.replace(/^Bearer\s+/i, '').trim();
+  if (!token) return null;
+  const raw = await env.FLOWSTATE_KV.get(`session:${token}`);
+  if (!raw) return null;
+  const session = JSON.parse(raw);
+  if (session.expires_at < Date.now()) { await env.FLOWSTATE_KV.delete(`session:${token}`); return null; }
+  return session.email;
+}
+
+async function handleRegister(request, env) {
+  const { email, password } = await request.json();
+  if (!email || !password) return json({ error: 'Vul email en wachtwoord in' }, 400);
+  const normalizedEmail = email.toLowerCase().trim();
+  if (await env.FLOWSTATE_KV.get(`user:${normalizedEmail}`))
+    return json({ error: 'Dit e-mailadres is al geregistreerd' }, 409);
+  const { hash, salt } = await hashPassword(password);
+  await env.FLOWSTATE_KV.put(`user:${normalizedEmail}`, JSON.stringify({ hash, salt, created_at: Date.now() }));
+  return json(await createSession(env, normalizedEmail));
+}
+
+async function handleLogin(request, env) {
+  const { email, password } = await request.json();
+  if (!email || !password) return json({ error: 'Vul email en wachtwoord in' }, 400);
+  const normalizedEmail = email.toLowerCase().trim();
+  const userRaw = await env.FLOWSTATE_KV.get(`user:${normalizedEmail}`);
+  if (!userRaw) return json({ error: 'E-mailadres of wachtwoord onjuist' }, 401);
+  const user = JSON.parse(userRaw);
+  if (!(await verifyPassword(password, user.hash, user.salt)))
+    return json({ error: 'E-mailadres of wachtwoord onjuist' }, 401);
+  return json(await createSession(env, normalizedEmail));
+}
+
+async function handleForgotPassword(request, env) {
+  const { email } = await request.json();
+  if (!email) return json({ error: 'Vul je e-mailadres in' }, 400);
+  const normalizedEmail = email.toLowerCase().trim();
+  const userRaw = await env.FLOWSTATE_KV.get(`user:${normalizedEmail}`);
+  // Don't reveal whether the account exists
+  if (!userRaw) return json({ ok: true });
+  const token = crypto.randomUUID();
+  await env.FLOWSTATE_KV.put(
+    `reset:${token}`,
+    JSON.stringify({ email: normalizedEmail, expires_at: Date.now() + 60 * 60 * 1000 }),
+    { expirationTtl: 3600 },
+  );
+  // No email service available — return the token so the prototype can construct the link.
+  // In production this token would be emailed and never exposed in the response.
+  return json({ ok: true, _reset_token: token });
+}
+
+async function handleResetPassword(request, env) {
+  const { token, new_password } = await request.json();
+  if (!token || !new_password) return json({ error: 'Ongeldige aanvraag' }, 400);
+  if (new_password.length < 8) return json({ error: 'Wachtwoord moet minimaal 8 tekens zijn' }, 400);
+  const raw = await env.FLOWSTATE_KV.get(`reset:${token}`);
+  if (!raw) return json({ error: 'Deze link is verlopen of ongeldig' }, 400);
+  const { email, expires_at } = JSON.parse(raw);
+  if (expires_at < Date.now()) {
+    await env.FLOWSTATE_KV.delete(`reset:${token}`);
+    return json({ error: 'Deze link is verlopen. Vraag een nieuwe aan.' }, 400);
+  }
+  const userRaw = await env.FLOWSTATE_KV.get(`user:${email}`);
+  if (!userRaw) return json({ error: 'Account niet gevonden' }, 404);
+  const user = JSON.parse(userRaw);
+  const { hash, salt } = await hashPassword(new_password);
+  await env.FLOWSTATE_KV.put(`user:${email}`, JSON.stringify({ ...user, hash, salt }));
+  await env.FLOWSTATE_KV.delete(`reset:${token}`);
+  return json(await createSession(env, email));
+}
+
+async function handleChangePassword(request, env) {
+  const email = await resolveToken(request, env);
+  if (!email) return json({ error: 'Niet ingelogd' }, 401);
+  const { current_password, new_password } = await request.json();
+  if (!current_password || !new_password) return json({ error: 'Vul beide velden in' }, 400);
+  if (new_password.length < 8) return json({ error: 'Wachtwoord moet minimaal 8 tekens zijn' }, 400);
+  const userRaw = await env.FLOWSTATE_KV.get(`user:${email}`);
+  if (!userRaw) return json({ error: 'Account niet gevonden' }, 404);
+  const user = JSON.parse(userRaw);
+  if (!(await verifyPassword(current_password, user.hash, user.salt)))
+    return json({ error: 'Huidig wachtwoord klopt niet' }, 401);
+  const { hash, salt } = await hashPassword(new_password);
+  await env.FLOWSTATE_KV.put(`user:${email}`, JSON.stringify({ ...user, hash, salt }));
+  return json({ ok: true });
+}
+
+async function handleDeleteAccount(request, env) {
+  const email = await resolveToken(request, env);
+  if (!email) return json({ error: 'Niet ingelogd' }, 401);
+  const auth  = request.headers.get('Authorization') || '';
+  const token = auth.replace(/^Bearer\s+/i, '').trim();
+  await env.FLOWSTATE_KV.delete(`user:${email}`);
+  await env.FLOWSTATE_KV.delete(`data:${email}`);
+  if (token) await env.FLOWSTATE_KV.delete(`session:${token}`);
+  return json({ ok: true });
+}
+
+async function handleMe(request, env) {
+  const email = await resolveToken(request, env);
+  if (!email) return json({ error: 'Niet ingelogd' }, 401);
+  return json({ email });
+}
+
+async function handleGetData(request, env) {
+  const email = await resolveToken(request, env);
+  if (!email) return json({ error: 'Niet ingelogd' }, 401);
+  const raw = await env.FLOWSTATE_KV.get(`data:${email}`);
+  return json(raw ? JSON.parse(raw) : null);
+}
+
+async function handlePutData(request, env) {
+  const email = await resolveToken(request, env);
+  if (!email) return json({ error: 'Niet ingelogd' }, 401);
+  const data = await request.json();
+  await env.FLOWSTATE_KV.put(`data:${email}`, JSON.stringify(data));
+  return json({ ok: true });
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
