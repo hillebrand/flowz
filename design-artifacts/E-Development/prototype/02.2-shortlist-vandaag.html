@@ -147,15 +147,14 @@
         return;
       }
 
-      // Urgency banner: required tasks due today/tomorrow
+      // Urgency banner: one or more required tasks due today/tomorrow
       const urgentTasks = _plan.required.filter(t =>
         FS.getUrgency(t.deadline, Math.max(1, t.sessions_total - t.sessions_done)) === 'urgent'
       );
       if (urgentTasks.length > 0) {
         document.getElementById('shortlist-vandaag-dagstatus-urgentie-banner').classList.remove('hidden');
-        const names = urgentTasks.map(t => `"${t.title}"`).join(' en ');
         document.getElementById('urgentie-banner-tekst').textContent =
-          `${names} ${urgentTasks.length === 1 ? 'moet' : 'moeten'} ${FS.formatDeadline(urgentTasks[0].deadline)} ingeleverd zijn!`;
+          'Er zijn taken die bijna af moeten zijn.';
       }
 
       renderPage();
@@ -197,7 +196,9 @@
       const dot       = urgency === 'urgent' ? '🔴' : urgency === 'this_week' ? '🟡' : '🟢';
       const cardBorder = isOptional
         ? 'border-dashed border-indigo-200 bg-white/60'
-        : 'border-gray-100 bg-white';
+        : urgency === 'urgent'
+          ? 'border-red-200 bg-red-50'
+          : 'border-gray-100 bg-white';
 
       return `
         <div id="card-${t.id}"
