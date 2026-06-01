@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FlowState — All Tasks</title>
+  <title>FlowState — Alle taken</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5' } } } }</script>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <script src="shared/app.js?v=8"></script>
+  <script src="shared/app.js?v=12"></script>
   <script src="shared/nav.js"></script>
 </head>
 <body class="bg-gray-50 min-h-screen flex flex-col">
@@ -20,7 +20,7 @@
     <a href="04.1-instellingen.html" class="text-gray-600 hover:text-gray-900 text-xl w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors">👤</a>
   </header>
 
-  <!-- View toggle + filter bar -->
+  <!-- View toggle bar -->
   <div class="bg-white border-b border-gray-100 px-4 py-2 sticky top-16 z-20">
     <div class="max-w-sm mx-auto flex items-center gap-2">
       <div class="flex bg-gray-100 rounded-xl p-1 gap-1">
@@ -33,10 +33,6 @@
           📅 Kalender
         </button>
       </div>
-      <button onclick="toggleFilter()"
-              class="ml-auto text-xs text-gray-500 border border-gray-200 px-3 py-1.5 rounded-xl hover:bg-gray-50 transition-colors">
-        Filter ▾
-      </button>
     </div>
   </div>
 
@@ -45,7 +41,7 @@
     <!-- Empty state -->
     <div id="empty-state" class="hidden text-center py-16">
       <div class="text-4xl mb-3">🌟</div>
-      <p class="text-gray-500 text-sm">Nog geen taken —super gedaan!<br>Of voeg er handmatig een toe.</p>
+      <p class="text-gray-500 text-sm">Nog geen taken — voeg er een toe hieronder!</p>
     </div>
 
     <!-- Task groups (list view) -->
@@ -127,10 +123,6 @@
         calView.classList.remove('hidden');
         renderCalendar();
       }
-    }
-
-    function toggleFilter() {
-      alert('Filter: binnenkort beschikbaar');
     }
 
     function render() {
@@ -244,16 +236,17 @@
     function taskCard(t) {
       const sessions = `${t.sessions_done}/${t.sessions_total}s`;
       const prio = t.priority || 'normal';
-      const prioBadge = prio === 'high' ? '<span class="text-xs text-red-500 font-medium">🔴 Hoog</span>'
-                      : prio === 'low'  ? '<span class="text-xs text-blue-400 font-medium">🔵 Laag</span>'
+      const prioBadge = prio === 'high' ? '<span class="text-xs bg-red-50 text-red-500 px-1.5 py-0.5 rounded font-medium">Hoog</span>'
+                      : prio === 'low'  ? '<span class="text-xs bg-blue-50 text-blue-400 px-1.5 py-0.5 rounded font-medium">Laag</span>'
                       : '';
       return `
         <a href="03.1-taak-detail.html?id=${t.id}"
            class="flex items-center gap-3 bg-white rounded-2xl px-4 py-4 shadow-sm border border-gray-100 hover:border-primary/30 hover:shadow-md transition-all active:scale-98 block">
           <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2 mb-0.5">
+            <div class="flex items-center gap-2 mb-0.5 flex-wrap">
               <div id="takenoverzicht-takenlijst-taaknaam"
                    class="text-sm font-medium text-gray-900 truncate">${t.title}</div>
+              ${FS.taskTypeBadge(t.type)}
               ${prioBadge}
             </div>
             <div id="takenoverzicht-takenlijst-deadline-en-sessies"

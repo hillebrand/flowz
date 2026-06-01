@@ -196,6 +196,18 @@ function formatDeadline(deadline) {
   return due.toLocaleDateString('nl', { month: 'short', day: 'numeric' });
 }
 
+// Returns an HTML badge string for a task type, or '' for Huiswerk/null.
+function taskTypeBadge(type) {
+  if (!type || type === 'Huiswerk') return '';
+  const styles = {
+    'Proefwerk': 'bg-red-50 text-red-600',
+    'Mondeling': 'bg-purple-50 text-purple-600',
+    'Opdracht':  'bg-indigo-50 text-indigo-600',
+  };
+  const cls = styles[type] || 'bg-indigo-50 text-indigo-600';
+  return `<span class="text-xs ${cls} px-1.5 py-0.5 rounded font-medium flex-shrink-0">${type}</span>`;
+}
+
 // ── Daily Plan ────────────────────────────────────────────────────────────────
 // Distributes sessions evenly across available days, respecting per-task deadlines.
 // Rule: max 1 session per task per day.
@@ -282,9 +294,17 @@ function buildDailyPlan(tasks, settings, energy) {
   return { required, optional, dailyTarget, todayAvailable };
 }
 
+// Returns local calendar date as "YYYY-MM-DD" — use this everywhere instead of toISOString()
+function getDayKey(date = new Date()) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, '0');
+  const d = String(date.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
 // Returns true if a session for taskId was already logged today
 function hasSessionToday(taskId, sessions_log) {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = getDayKey();
   return (sessions_log || []).some(s => s.task_id === taskId && s.date === today);
 }
 
@@ -436,20 +456,168 @@ function clearActiveSession() {
 
 
 function calcStreak(studyDays) {
-  if (!studyDays || studyDays.length === 0) return 0;
-  const today = new Date().toISOString().slice(0, 10);
-  const sorted = [...studyDays].sort().reverse();
+  return getStreakStatus(studyDays).streak;
+}
+
+// Returns { streak, studiedToday } using local calendar days.
+// Grace period: if studied yesterday but not today, streak stays alive.
+function getStreakStatus(studyDays) {
+  if (!studyDays || studyDays.length === 0) return { streak: 0, studiedToday: false };
+  const unique = [...new Set(studyDays)].sort().reverse();
+  const todayStr     = getDayKey();
+  const yesterdayStr = getDayKey(new Date(Date.now() - 86400000));
+  const studiedToday = unique[0] === todayStr;
+  const startStr = studiedToday ? todayStr
+                 : unique[0] === yesterdayStr ? yesterdayStr
+                 : null;
+  if (!startStr) return { streak: 0, studiedToday: false };
   let streak = 0;
-  let check = new Date();
-  check.setHours(0, 0, 0, 0);
-  for (const day of sorted) {
-    const checkStr = check.toISOString().slice(0, 10);
-    if (day === checkStr) {
+  // Parse as local noon to avoid any DST/rollover issues when subtracting days
+  let checkMs = new Date(`${startStr}T12:00:00`).getTime();
+  for (const day of unique) {
+    if (day === getDayKey(new Date(checkMs))) {
       streak++;
-      check.setDate(check.getDate() - 1);
+      checkMs -= 86400000;
     } else break;
   }
-  return streak;
+  return { streak, studiedToday };
+}
+
+// ── Gamification ─────────────────────────────────────────────────────────────
+
+function getStreakMessage(streak, studiedToday) {
+  if (streak === 0) return 'No cap, begin vandaag — elke dag telt 👀';
+  if (!studiedToday) return `Aye, studeer vandaag om je ${streak}-daagse streak te saven! ⚡`;
+  if (streak === 1)  return 'W move! Dag 1 zit erop, let\'s go 🔥';
+  if (streak === 2)  return 'Twee op een rij — wat een vibe 🚀';
+  if (streak < 5)   return `${streak} dagen non-stop, slay! Je hebt écht dat ritme ⚡`;
+  if (streak < 7)   return `${streak} dagen?! Bestie dat is fire 🌟`;
+  if (streak < 14)  return `${streak} dagen aan een stuk — dat is geen fluke, dat ben jij 🏆`;
+  if (streak < 21)  return 'Twee weken! Echt niet normaal meer 👑';
+  if (streak < 30)  return 'Drie weken non-stop, dat is main character energy 🔥';
+  return `${streak} dagen! Certified studeerheld, periodt 👑🔥`;
+}
+
+const _COMPLIMENTS = [
+  'Slay! Weer een sessie erop 🎉',
+  'No cap, je bent écht aan het groeien 📈',
+  'W sessie! Elke keer een beetje beter 💪',
+  'Bestie, je hersenen bedanken je later 🧠',
+  'Periodt! Weer een stap dichter bij je doel 🚀',
+  'Lowkey trots op je rn ⭐',
+  'That\'s the move — consistent blijven 🔑',
+  'You ate! Serieus goed bezig 🔥',
+];
+function getCompletionCompliment() {
+  return _COMPLIMENTS[Math.floor(Math.random() * _COMPLIMENTS.length)];
+}
+
+const XP_PER_SESSION = 10;
+const LEVELS = [
+  { level: 1, name: 'Beginner',     minXP: 0   },
+  { level: 2, name: 'Leerling',     minXP: 50  },
+  { level: 3, name: 'Studeer-held', minXP: 150 },
+  { level: 4, name: 'Kenner',       minXP: 300 },
+  { level: 5, name: 'Meester',      minXP: 500 },
+];
+
+function calcXP(sessions_log) {
+  return (sessions_log || []).length * XP_PER_SESSION;
+}
+
+function getLevel(xp) {
+  let current = LEVELS[0];
+  for (const l of LEVELS) { if (xp >= l.minXP) current = l; }
+  const nextIdx = LEVELS.findIndex(l => l.level === current.level) + 1;
+  const next = LEVELS[nextIdx] || null;
+  const progress = next
+    ? Math.min(100, Math.round(((xp - current.minXP) / (next.minXP - current.minXP)) * 100))
+    : 100;
+  return { ...current, xp, nextLevel: next, progress };
+}
+
+function showConfetti() {
+  const canvas = document.createElement('canvas');
+  canvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:9998;pointer-events:none';
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  document.body.appendChild(canvas);
+  const ctx = canvas.getContext('2d');
+  const colors = ['#6366f1','#f59e0b','#10b981','#ef4444','#8b5cf6','#ec4899','#06b6d4','#f97316'];
+  const particles = Array.from({ length: 100 }, () => ({
+    x: Math.random() * canvas.width,
+    y: -20 - Math.random() * canvas.height * 0.5,
+    w: 7 + Math.random() * 8,
+    h: 5 + Math.random() * 6,
+    color: colors[Math.floor(Math.random() * colors.length)],
+    r: Math.random() * Math.PI * 2,
+    dr: (Math.random() - 0.5) * 0.15,
+    vy: 3 + Math.random() * 4,
+    vx: (Math.random() - 0.5) * 2.5,
+  }));
+  const start = Date.now();
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    particles.forEach(p => {
+      p.y += p.vy; p.x += p.vx; p.r += p.dr;
+      ctx.save();
+      ctx.translate(p.x + p.w / 2, p.y + p.h / 2);
+      ctx.rotate(p.r);
+      ctx.fillStyle = p.color;
+      ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      ctx.restore();
+    });
+    if (Date.now() - start < 3500) requestAnimationFrame(draw);
+    else canvas.remove();
+  }
+  draw();
+}
+
+// Persist daily plan in localStorage so the list stays stable across app reopens.
+// The plan is locked for the day; only the display of completed tasks may change.
+function saveTodayPlan(plan) {
+  localStorage.setItem('fs_daily_plan', JSON.stringify({
+    date:          getDayKey(),
+    requiredIds:   plan.required.map(t => t.id),
+    optionalId:    plan.optional ? plan.optional.id : null,
+    todayAvailable: plan.todayAvailable,
+    dailyTarget:   plan.dailyTarget,
+  }));
+}
+
+function loadTodayPlan(tasks) {
+  try {
+    const raw = localStorage.getItem('fs_daily_plan');
+    if (!raw) return null;
+    const saved = JSON.parse(raw);
+    if (saved.date !== getDayKey()) return null;
+    const taskMap = new Map(tasks.map(t => [t.id, t]));
+    const required = saved.requiredIds.map(id => taskMap.get(id)).filter(Boolean);
+    const optional = saved.optionalId ? (taskMap.get(saved.optionalId) || null) : null;
+    return { required, optional, todayAvailable: saved.todayAvailable, dailyTarget: saved.dailyTarget };
+  } catch { return null; }
+}
+
+
+function showToast(msg) {
+  const existing = document.getElementById('fs-toast');
+  if (existing) existing.remove();
+  const el = document.createElement('div');
+  el.id = 'fs-toast';
+  el.textContent = msg;
+  el.style.cssText = [
+    'position:fixed', 'bottom:80px', 'left:50%', 'transform:translateX(-50%)',
+    'background:#1f2937', 'color:#fff', 'padding:10px 20px', 'border-radius:999px',
+    'font-size:14px', 'font-weight:500', 'z-index:9999',
+    'box-shadow:0 4px 16px rgba(0,0,0,0.18)',
+    'transition:opacity 0.3s', 'opacity:0', 'white-space:nowrap',
+  ].join(';');
+  document.body.appendChild(el);
+  requestAnimationFrame(() => { el.style.opacity = '1'; });
+  setTimeout(() => {
+    el.style.opacity = '0';
+    setTimeout(() => el.remove(), 300);
+  }, 2500);
 }
 
 // ── Greeting ─────────────────────────────────────────────────────────────────
@@ -470,13 +638,16 @@ function navigate(page) {
 // Export for modules (also works as globals via <script>)
 window.FS = {
   initData, loadData, saveData,
-  getUrgency, urgencyLabel, formatDeadline,
+  getUrgency, urgencyLabel, formatDeadline, taskTypeBadge,
   buildDailyPlan, hasSessionToday,
   isSetupDone, markSetupDone,
   getTodayEnergy, setTodayEnergy,
   getCapacityWarning,
   getActiveSession, setActiveSession, clearActiveSession,
-  calcStreak,
+  getDayKey,
+  calcStreak, getStreakStatus, getStreakMessage,
+  getCompletionCompliment, calcXP, getLevel,
+  showToast, showConfetti, saveTodayPlan, loadTodayPlan,
   getGreeting,
   navigate,
   isLoggedIn, getAuthToken, setAuthToken, clearAuthToken, pushCloudData,

@@ -8,7 +8,7 @@
   <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5' } } } }</script>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <script src="shared/app.js?v=8"></script>
+  <script src="shared/app.js?v=12"></script>
   <script src="shared/modal.js"></script>
 </head>
 <body class="bg-white min-h-screen flex flex-col">
@@ -81,11 +81,26 @@
           <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Prioriteit</label>
           <div class="flex gap-2">
             <button onclick="setEditPriority('low')" data-p="low"
-                    class="edit-priority-btn flex-1 py-2.5 rounded-xl border text-sm font-medium transition-all border-gray-200 text-gray-500">🔵 Laag</button>
+                    class="edit-priority-btn flex-1 py-2.5 rounded-xl border text-sm font-medium transition-all border-gray-200 text-gray-500">Laag</button>
             <button onclick="setEditPriority('normal')" data-p="normal"
-                    class="edit-priority-btn flex-1 py-2.5 rounded-xl border text-sm font-medium transition-all border-gray-200 text-gray-500">⚪ Normaal</button>
+                    class="edit-priority-btn flex-1 py-2.5 rounded-xl border text-sm font-medium transition-all border-gray-200 text-gray-500">Normaal</button>
             <button onclick="setEditPriority('high')" data-p="high"
-                    class="edit-priority-btn flex-1 py-2.5 rounded-xl border text-sm font-medium transition-all border-gray-200 text-gray-500">🔴 Hoog</button>
+                    class="edit-priority-btn flex-1 py-2.5 rounded-xl border text-sm font-medium transition-all border-gray-200 text-gray-500">Hoog</button>
+          </div>
+        </div>
+
+        <!-- Type -->
+        <div>
+          <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Type</label>
+          <div class="flex gap-2 flex-wrap">
+            <button onclick="setEditType('Huiswerk')" data-t="Huiswerk"
+                    class="edit-type-btn py-2 px-3 rounded-xl border text-sm font-medium transition-all border-gray-200 text-gray-500">Huiswerk</button>
+            <button onclick="setEditType('Opdracht')" data-t="Opdracht"
+                    class="edit-type-btn py-2 px-3 rounded-xl border text-sm font-medium transition-all border-gray-200 text-gray-500">Opdracht</button>
+            <button onclick="setEditType('Proefwerk')" data-t="Proefwerk"
+                    class="edit-type-btn py-2 px-3 rounded-xl border text-sm font-medium transition-all border-gray-200 text-gray-500">Proefwerk</button>
+            <button onclick="setEditType('Mondeling')" data-t="Mondeling"
+                    class="edit-type-btn py-2 px-3 rounded-xl border text-sm font-medium transition-all border-gray-200 text-gray-500">Mondeling</button>
           </div>
         </div>
 
@@ -162,6 +177,7 @@
     let editSessions = 1;
     let editComplexity = 'medium';
     let editPriority = 'normal';
+    let editType = 'Huiswerk';
     let editSubtasks = [];
     let editMaterials = [];
 
@@ -181,7 +197,15 @@
       // Taak info
       document.getElementById('taak-detail-bewerken-taak-info-taaknaam').textContent = task.title;
       document.getElementById('taak-detail-bewerken-taak-info-vak-en-deadline').textContent =
-        `${task.subject} · Inleveren ${FS.formatDeadline(task.deadline)}`;
+        `Inleveren ${FS.formatDeadline(task.deadline)}`;
+
+      // Type badge (Proefwerk / Mondeling / Opdracht)
+      const existingTypeBadge = document.getElementById('type-badge');
+      if (existingTypeBadge) existingTypeBadge.remove();
+      if (task.type && task.type !== 'Huiswerk') {
+        document.getElementById('taak-detail-bewerken-taak-info-vak-en-deadline')
+          .insertAdjacentHTML('beforebegin', `<span id="type-badge" class="inline-block mb-1">${FS.taskTypeBadge(task.type)}</span>`);
+      }
 
       const urgency = FS.getUrgency(task.deadline, Math.max(1, task.sessions_total - task.sessions_done));
       const urgencyDot = document.getElementById('urgency-dot');
@@ -207,11 +231,12 @@
 
       // Prioriteit badge
       const prio = task.priority || 'normal';
-      const prioLabel = prio === 'high' ? ' 🔴 Hoog' : prio === 'low' ? ' 🔵 Laag' : '';
+      const prioLabel = prio === 'high' ? 'Hoog' : prio === 'low' ? 'Laag' : '';
       if (prioLabel) {
         const badge = document.createElement('span');
         badge.id = 'priority-badge';
-        badge.className = 'text-xs font-medium ml-2 ' + (prio === 'high' ? 'text-red-500' : 'text-blue-400');
+        badge.className = 'text-xs font-medium px-1.5 py-0.5 rounded ml-2 ' +
+          (prio === 'high' ? 'bg-red-50 text-red-500' : 'bg-blue-50 text-blue-400');
         badge.textContent = prioLabel;
         urgencyDot.insertAdjacentElement('afterend', badge);
       }
@@ -300,12 +325,13 @@
       if (!confirmed) return;
 
       task.status = 'done';
-      const today = new Date().toISOString().slice(0, 10);
+      const today = FS.getDayKey();
       data.sessions_log = data.sessions_log || [];
       data.sessions_log.push({ task_id: taskId, date: today });
       if (!data.study_days) data.study_days = [];
       if (!data.study_days.includes(today)) data.study_days.push(today);
       FS.saveData(data);
+      FS.showToast('Taak voltooid! Goed gedaan 🏆');
       renderTask();
     }
 
@@ -333,12 +359,13 @@
       const task = data.tasks.find(t => t.id === taskId);
       if (!task || task.sessions_done >= task.sessions_total) return;
       task.sessions_done++;
+      const today = FS.getDayKey();
       data.sessions_log = data.sessions_log || [];
-      data.sessions_log.push({ task_id: taskId, date: new Date().toISOString().slice(0, 10) });
-      const today = new Date().toISOString().slice(0, 10);
+      data.sessions_log.push({ task_id: taskId, date: today });
       if (!data.study_days) data.study_days = [];
       if (!data.study_days.includes(today)) data.study_days.push(today);
       FS.saveData(data);
+      FS.showToast(FS.getCompletionCompliment() + ' +10 XP ⚡');
       renderTask();
     }
 
@@ -368,11 +395,13 @@
         editSessions = task.sessions_total || 1;
         editComplexity = task.complexity || 'medium';
         editPriority = task.priority || 'normal';
+        editType = task.type || 'Huiswerk';
         editSubtasks = (task.subtasks || []).map(s => ({ ...s }));
         editMaterials = [...(task.materials || [])];
         document.getElementById('edit-sessions-count').textContent = editSessions;
         updateEditComplexityUI();
         updateEditPriorityUI();
+        updateEditTypeUI();
         renderEditSubtasks();
         renderEditMaterials();
         form.classList.remove('hidden');
@@ -403,6 +432,19 @@
       document.querySelectorAll('.edit-complexity-btn').forEach(btn => {
         const active = btn.dataset.v === editComplexity;
         btn.className = 'edit-complexity-btn flex-1 py-2.5 rounded-xl border text-sm font-medium transition-all ' +
+          (active ? 'border-primary bg-primary/10 text-primary' : 'border-gray-200 text-gray-500');
+      });
+    }
+
+    function setEditType(v) {
+      editType = v;
+      updateEditTypeUI();
+    }
+
+    function updateEditTypeUI() {
+      document.querySelectorAll('.edit-type-btn').forEach(btn => {
+        const active = btn.dataset.t === editType;
+        btn.className = 'edit-type-btn py-2 px-3 rounded-xl border text-sm font-medium transition-all ' +
           (active ? 'border-primary bg-primary/10 text-primary' : 'border-gray-200 text-gray-500');
       });
     }
@@ -467,6 +509,7 @@
       task.sessions_total = editSessions;
       task.complexity = editComplexity;
       task.priority = editPriority;
+      task.type = editType === 'Huiswerk' ? null : editType;
       // Preserve done-state of existing subtasks when title matches
       task.subtasks = editSubtasks;
       task.materials = editMaterials;

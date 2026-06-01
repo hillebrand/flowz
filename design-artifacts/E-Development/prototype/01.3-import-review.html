@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FlowState — Import Review</title>
+  <title>FlowState — Huiswerk importeren</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5' } } } }</script>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <script src="shared/app.js?v=8"></script>
+  <script src="shared/app.js?v=12"></script>
 </head>
 <body class="bg-white min-h-screen flex flex-col">
 
@@ -61,8 +61,6 @@
   </main>
 
   <script>
-    const WORKER_URL = 'https://flowstate-proxy.flowstate-evelien.workers.dev';
-
     let items = [];
     let selected = new Set();
 
@@ -166,6 +164,14 @@
       }
     })();
 
+    function esc(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
     function renderList() {
       const list       = document.getElementById('import-list');
       const countLabel = document.getElementById('import-review-header-aantal-label');
@@ -174,18 +180,19 @@
       list.innerHTML = items.map(item => `
         <label class="flex items-start gap-3 p-4 border border-gray-200 rounded-xl cursor-pointer hover:border-primary/40 hover:bg-indigo-50/30 transition-colors">
           <input type="checkbox"
-                 id="cb-${item.id}"
+                 id="cb-${esc(item.id)}"
                  ${selected.has(item.id) ? 'checked' : ''}
-                 onchange="toggleItem('${item.id}')"
+                 onchange="toggleItem('${esc(item.id)}')"
                  class="mt-0.5 accent-primary w-4 h-4 rounded">
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2">
-              <span class="text-sm font-medium text-gray-900 truncate">${item.title}</span>
-              ${item.type && item.type !== 'Huiswerk' ? `<span class="text-xs bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded font-medium">${item.type}</span>` : ''}
+              <span class="text-sm font-medium text-gray-900 truncate">${esc(item.title)}</span>
+              ${item.type && item.type !== 'Huiswerk' ? `<span class="text-xs bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded font-medium">${esc(item.type)}</span>` : ''}
             </div>
             <div class="text-xs text-gray-400 mt-0.5">
-              ${item.subject ? `<span class="font-medium text-gray-500">${item.subject}</span> · ` : ''}Inleveren ${FS.formatDeadline(item.deadline)}
+              ${item.subject ? `<span class="font-medium text-gray-500">${esc(item.subject)}</span> · ` : ''}Inleveren ${FS.formatDeadline(item.deadline)}
             </div>
+            ${item.description ? `<div class="text-xs text-gray-400 mt-1 italic truncate">${esc(item.description).slice(0, 80)}${item.description.length > 80 ? '…' : ''}</div>` : ''}
           </div>
         </label>
       `).join('');
@@ -213,6 +220,7 @@
         id:               'mg_' + Date.now() + '_' + i.id,
         title:            i.title,
         subject:          i.subject,
+        type:             i.type || null,
         description:      i.description || '',
         deadline:         i.deadline,
         sessions_total:   1,

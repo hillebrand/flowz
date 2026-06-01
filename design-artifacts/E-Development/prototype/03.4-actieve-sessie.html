@@ -8,7 +8,7 @@
   <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5' } } } }</script>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <script src="shared/app.js?v=8"></script>
+  <script src="shared/app.js?v=12"></script>
   <style>
     .timer-ring { transform: rotate(-90deg); transform-origin: 50% 50%; }
     @keyframes fadeInUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
@@ -211,8 +211,8 @@
         task.sessions_done++;
         if (task.sessions_done >= task.sessions_total) task.status = 'done';
         data.sessions_log = data.sessions_log || [];
-        data.sessions_log.push({ task_id: taskId, date: new Date().toISOString().slice(0, 10) });
-        const today = new Date().toISOString().slice(0, 10);
+        data.sessions_log.push({ task_id: taskId, date: FS.getDayKey() });
+        const today = FS.getDayKey();
         if (!data.study_days) data.study_days = [];
         if (!data.study_days.includes(today)) data.study_days.push(today);
         FS.saveData(data);

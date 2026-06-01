@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FlowState — Today</title>
+  <title>FlowState — Vandaag</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5' } } } }</script>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <script src="shared/app.js?v=8"></script>
+  <script src="shared/app.js?v=12"></script>
   <script src="shared/modal.js"></script>
   <script src="shared/nav.js"></script>
 </head>
@@ -61,8 +61,11 @@
     <div id="done-state" class="hidden text-center py-16">
       <div class="text-5xl mb-4">🎉</div>
       <p class="text-xl font-bold text-gray-900 mb-2">Je bent klaar voor vandaag!</p>
-      <p class="text-sm text-gray-400">Geweldig gedaan. Tot morgen.</p>
+      <p class="text-sm text-gray-400">Nice. Tot morgen!</p>
     </div>
+
+    <!-- Motivation banner (1 remaining / all done) -->
+    <div id="motivation-banner" class="hidden mb-3 rounded-xl px-4 py-3 text-sm font-medium text-center"></div>
 
     <!-- Sectieheader verplichte sessies -->
     <div id="plan-header" class="hidden flex items-center gap-2 mb-3 px-1">
@@ -101,6 +104,7 @@
 
     let _data = null;
     let _plan = null;
+    let _confettiFired = false;
 
     (async function() {
       _data = await FS.initData();
@@ -127,8 +131,11 @@
         document.getElementById('capaciteitsdruk-tekst').textContent = capWarning;
       }
 
-      // Build daily plan
-      _plan = FS.buildDailyPlan(_data.tasks, _data.settings || {}, energy);
+      // Load today's plan from sessionStorage (stable across navigation)
+      // or build fresh and save it
+      _plan = FS.loadTodayPlan(_data.tasks)
+           || FS.buildDailyPlan(_data.tasks, _data.settings || {}, energy);
+      FS.saveTodayPlan(_plan);
 
       if (!_plan.todayAvailable) {
         document.getElementById('blocked-state').classList.remove('hidden');
@@ -148,7 +155,7 @@
         document.getElementById('shortlist-vandaag-dagstatus-urgentie-banner').classList.remove('hidden');
         const names = urgentTasks.map(t => `"${t.title}"`).join(' en ');
         document.getElementById('urgentie-banner-tekst').textContent =
-          `${names} ${urgentTasks.length === 1 ? 'is' : 'zijn'} ${FS.formatDeadline(urgentTasks[0].deadline)} inleveren!`;
+          `${names} ${urgentTasks.length === 1 ? 'moet' : 'moeten'} ${FS.formatDeadline(urgentTasks[0].deadline)} ingeleverd zijn!`;
       }
 
       renderPage();
@@ -164,27 +171,30 @@
     function renderRequired() {
       const header = document.getElementById('plan-header');
       const label  = document.getElementById('plan-header-label');
-      const n = _plan.required.length;
+      const n      = _plan.required.length;
+      const done   = _plan.required.filter(t => FS.hasSessionToday(t.id, _data.sessions_log)).length;
       header.classList.remove('hidden');
-      label.textContent = `VANDAAG — ${n} SESSIE${n !== 1 ? 'S' : ''}`;
+      label.textContent = `VANDAAG — ${done}/${n} SESSIE${n !== 1 ? 'S' : ''}`;
 
       document.getElementById('shortlist-container').innerHTML =
         _plan.required.map(t => taskCard(t, false)).join('');
     }
 
     function renderOptional() {
-      const section = document.getElementById('optional-section');
+      const section   = document.getElementById('optional-section');
       const container = document.getElementById('optional-container');
-      if (!_plan.optional) { section.classList.add('hidden'); return; }
+      const allDone   = _plan.required.every(t => FS.hasSessionToday(t.id, _data.sessions_log));
+      if (!_plan.optional || allDone) { section.classList.add('hidden'); return; }
       section.classList.remove('hidden');
       container.innerHTML = taskCard(_plan.optional, true);
     }
 
     function taskCard(t, isOptional) {
-      const todayDone  = FS.hasSessionToday(t.id, _data.sessions_log);
-      const remaining  = Math.max(0, t.sessions_total - t.sessions_done);
-      const urgency    = FS.getUrgency(t.deadline, Math.max(1, remaining));
-      const dot        = urgency === 'urgent' ? '🔴' : urgency === 'this_week' ? '🟡' : '🟢';
+      const todayDone = FS.hasSessionToday(t.id, _data.sessions_log);
+      const task      = _data.tasks.find(d => d.id === t.id) || t;
+      const remaining = Math.max(0, task.sessions_total - task.sessions_done);
+      const urgency   = FS.getUrgency(t.deadline, Math.max(1, remaining));
+      const dot       = urgency === 'urgent' ? '🔴' : urgency === 'this_week' ? '🟡' : '🟢';
       const cardBorder = isOptional
         ? 'border-dashed border-indigo-200 bg-white/60'
         : 'border-gray-100 bg-white';
@@ -198,7 +208,10 @@
             ${todayDone ? '✓' : ''}
           </button>
           <a href="03.1-taak-detail.html?id=${t.id}" class="flex-1 min-w-0">
-            <div class="text-sm font-medium text-gray-900 ${todayDone ? 'line-through text-gray-400' : ''}">${t.title}</div>
+            <div class="flex items-center gap-1.5 flex-wrap">
+              <div class="text-sm font-medium ${todayDone ? 'line-through text-gray-400' : 'text-gray-900'}">${t.title}</div>
+              ${FS.taskTypeBadge(t.type)}
+            </div>
             <div class="text-xs text-gray-400 mt-0.5">
               ${FS.formatDeadline(t.deadline)} · nog ${remaining} sessie${remaining !== 1 ? 's' : ''}
             </div>
@@ -207,18 +220,42 @@
         </div>`;
     }
 
+    function checkAllDone() {
+      const required  = _plan.required;
+      if (required.length === 0) return;
+      const doneCnt   = required.filter(t => FS.hasSessionToday(t.id, _data.sessions_log)).length;
+      const remaining = required.length - doneCnt;
+      const banner    = document.getElementById('motivation-banner');
+
+      if (remaining === 0) {
+        // All done — show celebration banner, fire confetti once
+        banner.className = 'mb-3 rounded-xl px-4 py-4 text-center bg-green-50 border border-green-200';
+        banner.innerHTML = '<div class="text-2xl mb-1">🎉</div><div class="font-bold text-green-800 text-base">Hoera! Je bent klaar voor vandaag!</div><div class="text-sm text-green-600 mt-0.5">Nice — geniet van je vrije tijd!</div>';
+        banner.classList.remove('hidden');
+        if (!_confettiFired) {
+          _confettiFired = true;
+          setTimeout(() => FS.showConfetti(), 300);
+        }
+      } else if (remaining === 1) {
+        // One left — encourage!
+        banner.className = 'mb-3 rounded-xl px-4 py-3 text-sm font-medium text-center bg-indigo-50 border border-indigo-100 text-indigo-700';
+        banner.textContent = '💪 Nog maar 1 taak te gaan!';
+        banner.classList.remove('hidden');
+        _confettiFired = false;
+      } else {
+        banner.classList.add('hidden');
+        _confettiFired = false;
+      }
+    }
+
     function toggleSession(id) {
       _data = FS.loadData();
       const task = _data.tasks.find(t => t.id === id);
       if (!task) return;
 
-      const todayStr = new Date().toISOString().slice(0, 10);
+      const todayStr = FS.getDayKey();
       _data.sessions_log = _data.sessions_log || [];
 
-      const logIdx = _data.sessions_log.findLastIndex
-        ? _data.sessions_log.findLastIndex(s => s.task_id === id && s.date === todayStr)
-        : [..._data.sessions_log].reverse().findIndex(s => s.task_id === id && s.date === todayStr);
-      // findLastIndex polyfill: recompute real index
       const realIdx = _data.sessions_log.map((s, i) => ({ s, i }))
         .filter(({ s }) => s.task_id === id && s.date === todayStr)
         .map(({ i }) => i)
@@ -231,29 +268,21 @@
         _data.sessions_log.push({ task_id: id, date: todayStr });
         if (!_data.study_days) _data.study_days = [];
         if (!_data.study_days.includes(todayStr)) _data.study_days.push(todayStr);
+        FS.showToast(FS.getCompletionCompliment() + ' +10 XP ⚡');
       } else {
         // Undo session
         task.sessions_done = Math.max(0, task.sessions_done - 1);
         if (task.status === 'done' && task.sessions_done < task.sessions_total) task.status = 'pending';
         _data.sessions_log.splice(realIdx, 1);
+        // Clean up study_days if no sessions remain today
+        const stillHasToday = _data.sessions_log.some(s => s.date === todayStr);
+        if (!stillHasToday) {
+          _data.study_days = (_data.study_days || []).filter(d => d !== todayStr);
+        }
       }
 
       FS.saveData(_data);
       renderPage();
-    }
-
-    function checkAllDone() {
-      const required = _plan.required;
-      if (required.length === 0) return;
-      const allDone = required.every(t => FS.hasSessionToday(t.id, _data.sessions_log));
-      if (allDone) {
-        setTimeout(() => {
-          document.getElementById('shortlist-container').classList.add('hidden');
-          document.getElementById('plan-header').classList.add('hidden');
-          document.getElementById('optional-section').classList.add('hidden');
-          document.getElementById('done-state').classList.remove('hidden');
-        }, 600);
-      }
     }
 
     function goAddTask() {

@@ -8,7 +8,7 @@
   <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5' } } } }</script>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <script src="shared/app.js?v=8"></script>
+  <script src="shared/app.js?v=12"></script>
   <script src="shared/modal.js"></script>
 </head>
 <body class="bg-white min-h-screen flex flex-col">
@@ -39,15 +39,6 @@
                   rows="2"
                   placeholder="Specifieke instructies, leerdoelen, ..."
                   class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary resize-none"></textarea>
-      </div>
-      <div>
-        <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Vak</label>
-        <select id="taak-aanmaken-basisgegevens-vak-selector"
-                class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary bg-white">
-          <option>English</option><option>Math</option><option>History</option>
-          <option>Biology</option><option>Physics</option><option>Chemistry</option>
-          <option>Dutch</option><option>French</option><option>German</option><option>Other</option>
-        </select>
       </div>
       <div>
         <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-1.5">Deadline</label>
@@ -176,8 +167,6 @@
       // Fill form
       document.getElementById('taak-aanmaken-basisgegevens-taaknaam-veld').value = task.title;
       document.getElementById('taak-aanmaken-basisgegevens-omschrijving-veld').value = task.description || '';
-      const subjectSel = document.getElementById('taak-aanmaken-basisgegevens-vak-selector');
-      for (let opt of subjectSel.options) if (opt.value === task.subject) { opt.selected = true; break; }
       const deadlineInput = document.getElementById('taak-aanmaken-basisgegevens-deadline-input');
       deadlineInput.value = task.deadline || '';
       deadlineInput.min = new Date().toISOString().slice(0, 10);
@@ -270,7 +259,6 @@
       if (task) {
         task.title = document.getElementById('taak-aanmaken-basisgegevens-taaknaam-veld').value.trim() || task.title;
         task.description = document.getElementById('taak-aanmaken-basisgegevens-omschrijving-veld').value.trim();
-        task.subject = document.getElementById('taak-aanmaken-basisgegevens-vak-selector').value;
         task.deadline = document.getElementById('taak-aanmaken-basisgegevens-deadline-input').value || task.deadline;
         task.sessions_total = sessions;
         task.complexity = complexity;

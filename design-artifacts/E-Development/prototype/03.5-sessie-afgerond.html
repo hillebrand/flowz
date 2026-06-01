@@ -8,7 +8,7 @@
   <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5' } } } }</script>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <script src="shared/app.js?v=8"></script>
+  <script src="shared/app.js?v=12"></script>
   <style>
     @keyframes popIn { 0%{transform:scale(0.5);opacity:0} 70%{transform:scale(1.15)} 100%{transform:scale(1);opacity:1} }
     .pop-in { animation: popIn 0.5s cubic-bezier(.175,.885,.32,1.275) forwards; }
@@ -21,7 +21,9 @@
     <div id="sessie-afgerond-bevestiging-beloning-emoji" class="text-7xl mb-6 pop-in">🎉</div>
 
     <h1 id="sessie-afgerond-bevestiging-hoofd-boodschap"
-        class="text-2xl font-bold text-gray-900 mb-2">Sessie klaar!</h1>
+        class="text-2xl font-bold text-gray-900 mb-2">Sessie afgerond!</h1>
+    <p id="sessie-afgerond-bevestiging-compliment"
+       class="text-base text-indigo-600 font-medium mb-1"></p>
     <p id="sessie-afgerond-bevestiging-sessie-context"
        class="text-sm text-gray-400 mb-6"></p>
 
@@ -65,6 +67,9 @@
         document.getElementById('sessie-afgerond-bevestiging-beloning-emoji').textContent = '🏆';
         document.getElementById('sessie-afgerond-bevestiging-hoofd-boodschap').textContent = 'Taak voltooid! 🏆';
       }
+
+      document.getElementById('sessie-afgerond-bevestiging-compliment').textContent =
+        FS.getCompletionCompliment() + ' +10 XP ⚡';
 
       document.getElementById('sessie-afgerond-bevestiging-sessie-context').textContent =
         `${task.title} · Sessie ${done} van ${total}`;

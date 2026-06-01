@@ -8,7 +8,7 @@
   <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5' } } } }</script>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <script src="shared/app.js?v=8"></script>
+  <script src="shared/app.js?v=12"></script>
   <script src="shared/nav.js"></script>
 </head>
 <body class="bg-gray-50 min-h-screen flex flex-col">
@@ -23,15 +23,25 @@
 
     <!-- Section: Streak -->
     <div class="bg-white rounded-2xl px-5 py-5 shadow-sm border border-gray-100 mb-5 flex items-center gap-4">
-      <div class="text-4xl" id="voortgangsinzicht-streak-vuuremoji">🔥</div>
+      <div id="voortgangsinzicht-streak-vuuremoji" class="text-4xl"></div>
       <div class="flex-1">
         <div id="voortgangsinzicht-streak-streak-teller"
              class="text-2xl font-bold text-gray-900"></div>
         <div id="voortgangsinzicht-streak-streak-label"
              class="text-sm text-gray-400"></div>
+        <!-- Next milestone progress -->
+        <div id="milestone-progress-wrap" class="hidden mt-2">
+          <div class="flex justify-between text-xs text-gray-400 mb-1">
+            <span id="milestone-progress-label"></span>
+            <span id="milestone-progress-pct"></span>
+          </div>
+          <div class="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+            <div id="milestone-progress-bar" class="h-full bg-primary rounded-full transition-all"></div>
+          </div>
+        </div>
       </div>
       <!-- Milestone badge -->
-      <div id="milestone-badge" class="hidden bg-primary/10 text-primary text-xs px-3 py-1.5 rounded-full font-semibold"></div>
+      <div id="milestone-badge" class="hidden bg-primary/10 text-primary text-xs px-3 py-1.5 rounded-full font-semibold text-center"></div>
     </div>
 
     <!-- Section: Weekoverzicht -->
@@ -49,6 +59,26 @@
            class="text-sm text-gray-400"></div>
     </div>
 
+    <!-- Section: Level & XP -->
+    <div class="bg-white rounded-2xl px-5 py-5 shadow-sm border border-gray-100 mb-5">
+      <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Jouw niveau</h3>
+      <div class="flex items-center gap-3 mb-3">
+        <div id="xp-level-badge"
+             class="text-xs font-bold px-3 py-1 rounded-full bg-primary/10 text-primary"></div>
+        <div id="xp-amount" class="text-sm text-gray-400"></div>
+      </div>
+      <div id="xp-next-wrap" class="">
+        <div class="flex justify-between text-xs text-gray-400 mb-1">
+          <span id="xp-next-label"></span>
+          <span id="xp-pct"></span>
+        </div>
+        <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
+          <div id="xp-bar" class="h-full bg-primary rounded-full transition-all"></div>
+        </div>
+      </div>
+      <div id="xp-max-label" class="hidden text-xs text-gray-400 mt-1">Hoogste niveau bereikt! 🏆</div>
+    </div>
+
   </main>
 
   <script>
@@ -57,38 +87,52 @@
     (async function() {
       const data = await FS.initData();
 
-      // Streak
-      const streak = FS.calcStreak(data.study_days || []);
+      // ── Streak ──────────────────────────────────────────────────────────────
+      const { streak, studiedToday } = FS.getStreakStatus(data.study_days || []);
+      const emojiEl = document.getElementById('voortgangsinzicht-streak-vuuremoji');
+      emojiEl.textContent = streak === 0 ? '💤' : studiedToday ? '🔥' : '🕯️';
       document.getElementById('voortgangsinzicht-streak-streak-teller').textContent =
         `${streak} dag${streak !== 1 ? 'en' : ''}`;
       document.getElementById('voortgangsinzicht-streak-streak-label').textContent =
-        streak === 0 ? 'Begin met studeren om je reeks te starten!' : 'huidige reeks 🚀';
+        FS.getStreakMessage(streak, studiedToday);
 
-      // Milestone
+      // Milestone badge
       const milestones = [3, 5, 7, 14, 21, 30, 50, 100];
-      const milestone = milestones.find(m => streak === m);
-      if (milestone) {
+      const hitMilestone = milestones.find(m => streak === m);
+      if (hitMilestone) {
         const badge = document.getElementById('milestone-badge');
-        badge.textContent = `${milestone}-daagse mijlpaal! 🏆`;
+        badge.textContent = `🏆 ${hitMilestone}-daagse\nmijlpaal!`;
         badge.classList.remove('hidden');
       }
 
-      // Week overview
-      const today = new Date();
+      // Next milestone progress bar
+      const nextMilestone = milestones.find(m => m > streak);
+      if (nextMilestone && !hitMilestone) {
+        const prevMilestone = [...milestones].reverse().find(m => m <= streak) ?? 0;
+        const pct = Math.round(((streak - prevMilestone) / (nextMilestone - prevMilestone)) * 100);
+        document.getElementById('milestone-progress-wrap').classList.remove('hidden');
+        document.getElementById('milestone-progress-label').textContent =
+          `Naar ${nextMilestone}-daagse mijlpaal`;
+        document.getElementById('milestone-progress-pct').textContent = `${streak}/${nextMilestone}`;
+        document.getElementById('milestone-progress-bar').style.width = `${pct}%`;
+      }
+
+      // ── Week overview ────────────────────────────────────────────────────────
+      const todayStr = FS.getDayKey();
       const days = ['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'];
       const studyDays = new Set(data.study_days || []);
 
-      // Get Mon of this week
-      const monday = new Date(today);
-      monday.setDate(today.getDate() - ((today.getDay() + 6) % 7));
+      const now = new Date();
+      const monday = new Date(now);
+      monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
 
       const weekHtml = days.map((day, i) => {
         const d = new Date(monday);
         d.setDate(monday.getDate() + i);
-        const dateStr = d.toISOString().slice(0, 10);
-        const isToday = dateStr === today.toISOString().slice(0, 10);
-        const studied = studyDays.has(dateStr);
-        const isFuture = d > today;
+        const dateStr = FS.getDayKey(d);
+        const isToday  = dateStr === todayStr;
+        const studied  = studyDays.has(dateStr);
+        const isFuture = dateStr > todayStr;
         return `
           <div class="flex flex-col items-center gap-1.5">
             <div class="text-xs ${isToday ? 'font-bold text-primary' : 'text-gray-400'}">${day}</div>
@@ -101,11 +145,27 @@
       }).join('');
       document.getElementById('voortgangsinzicht-weekoverzicht-dag-checkmarks').innerHTML = weekHtml;
 
-      // Totaal
+      // ── Totaal ───────────────────────────────────────────────────────────────
       const total = (data.sessions_log || []).length;
       document.getElementById('voortgangsinzicht-totaalteller-totaalsessies').textContent = total;
       document.getElementById('voortgangsinzicht-totaalteller-totaalsessies-label').textContent =
         `studiesessie${total !== 1 ? 's' : ''} voltooid`;
+
+      // ── XP & level ───────────────────────────────────────────────────────────
+      const xp  = FS.calcXP(data.sessions_log);
+      const lvl = FS.getLevel(xp);
+      document.getElementById('xp-level-badge').textContent = `Level ${lvl.level} — ${lvl.name}`;
+      document.getElementById('xp-amount').textContent = `${xp} XP`;
+      if (lvl.nextLevel) {
+        document.getElementById('xp-next-label').textContent =
+          `Volgende: Level ${lvl.nextLevel.level} ${lvl.nextLevel.name}`;
+        document.getElementById('xp-pct').textContent = `${lvl.progress}%`;
+        document.getElementById('xp-bar').style.width = `${lvl.progress}%`;
+      } else {
+        document.getElementById('xp-next-wrap').classList.add('hidden');
+        document.getElementById('xp-max-label').classList.remove('hidden');
+        document.getElementById('xp-bar').style.width = '100%';
+      }
     })();
   </script>
 </body>
