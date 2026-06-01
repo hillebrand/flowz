@@ -8,7 +8,7 @@
   <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5' } } } }</script>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <script src="shared/app.js?v=14"></script>
+  <script src="shared/app.js?v=15"></script>
   <script src="shared/modal.js"></script>
   <script src="shared/nav.js"></script>
 </head>
@@ -210,7 +210,7 @@
               : 'border-gray-100 bg-white';
 
       const subline = isRecurring
-        ? `<span class="text-xs font-medium text-indigo-400">↻ Dagelijks</span>`
+        ? `<span class="text-xs font-medium text-indigo-400">${FS.getRecurringLabel(t)}</span>`
         : `<span class="text-xs text-gray-400">${FS.formatDeadline(t.deadline)} · nog ${remaining} sessie${remaining !== 1 ? 's' : ''}</span>`;
 
       return `

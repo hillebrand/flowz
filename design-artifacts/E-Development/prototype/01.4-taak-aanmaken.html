@@ -8,7 +8,7 @@
   <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5' } } } }</script>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <script src="shared/app.js?v=14"></script>
+  <script src="shared/app.js?v=15"></script>
   <script src="shared/modal.js"></script>
 </head>
 <body class="bg-white min-h-screen flex flex-col">
@@ -58,6 +58,43 @@
         </span>
         <span id="recurring-label"
               class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-400 font-medium">Uit</span>
+      </button>
+
+      <!-- Period selector (shown when recurring is on) -->
+      <div id="recurring-period-panel" style="display:none" class="bg-indigo-50 rounded-xl px-4 py-3 space-y-3">
+        <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide">Herhaling</label>
+        <div class="flex flex-wrap gap-2" id="period-btns">
+          <button type="button" onclick="setPeriod('daily')" data-period="daily"
+                  class="period-btn px-3 py-1.5 rounded-lg border text-sm font-medium transition-all">Dagelijks</button>
+          <button type="button" onclick="setPeriod('interval')" data-period="interval"
+                  class="period-btn px-3 py-1.5 rounded-lg border text-sm font-medium transition-all">Om de X dagen</button>
+          <button type="button" onclick="setPeriod('weekly')" data-period="weekly"
+                  class="period-btn px-3 py-1.5 rounded-lg border text-sm font-medium transition-all">Wekelijks</button>
+          <button type="button" onclick="setPeriod('weekdays')" data-period="weekdays"
+                  class="period-btn px-3 py-1.5 rounded-lg border text-sm font-medium transition-all">Vaste dagen</button>
+        </div>
+
+        <!-- Interval stepper -->
+        <div id="interval-row" style="display:none" class="flex items-center gap-3">
+          <span class="text-sm text-gray-600">Elke</span>
+          <button type="button" onclick="changeInterval(-1)"
+                  class="w-8 h-8 rounded-full border border-gray-300 text-gray-600 flex items-center justify-center hover:border-primary hover:text-primary transition-colors text-lg leading-none">−</button>
+          <span id="interval-display" class="text-lg font-semibold text-gray-900 w-5 text-center">2</span>
+          <button type="button" onclick="changeInterval(1)"
+                  class="w-8 h-8 rounded-full border border-gray-300 text-gray-600 flex items-center justify-center hover:border-primary hover:text-primary transition-colors text-lg leading-none">+</button>
+          <span class="text-sm text-gray-600">dagen</span>
+        </div>
+
+        <!-- Weekly: shows which day -->
+        <div id="weekly-row" style="display:none" class="text-sm text-gray-600">
+          Iedere <span id="weekly-day-label" class="font-medium text-indigo-600"></span>
+        </div>
+
+        <!-- Weekdays checkboxes -->
+        <div id="weekdays-row" style="display:none" class="flex flex-wrap gap-2">
+          <!-- Ma Di Wo Do Vr Za Zo; JS days: 1 2 3 4 5 6 0 -->
+        </div>
+      </div>
       </button>
     </div>
 
@@ -148,8 +185,17 @@
     let complexity = 'medium';
     let priority = 'normal';
     let recurring = false;
+    let recurringType = 'daily';
+    let recurringInterval = 2;
+    let recurringWeekday = null;   // null = use today when saving
+    let recurringWeekdays = [];    // array of JS day numbers for 'weekdays' type
     let subtasks = [];
     let materials = [];
+
+    const DAY_NAMES_NL = ['zondag','maandag','dinsdag','woensdag','donderdag','vrijdag','zaterdag'];
+    // Display order: Ma Di Wo Do Vr Za Zo → JS days: 1 2 3 4 5 6 0
+    const WEEKDAY_ORDER = [1, 2, 3, 4, 5, 6, 0];
+    const WEEKDAY_LABELS = { 0:'Zo', 1:'Ma', 2:'Di', 3:'Wo', 4:'Do', 5:'Vr', 6:'Za' };
 
     (async function() {
       await FS.initData();
@@ -176,6 +222,10 @@
       complexity = task.complexity || 'medium';
       priority = task.priority || 'normal';
       recurring = task.recurring || false;
+      recurringType = task.recurring_type || 'daily';
+      recurringInterval = task.recurring_interval || 2;
+      recurringWeekday = task.recurring_weekday ?? null;
+      recurringWeekdays = [...(task.recurring_weekdays || [])];
       subtasks = [...(task.subtasks || [])];
       materials = [...(task.materials || [])];
 
@@ -241,6 +291,7 @@
       const btn = document.getElementById('recurring-btn');
       const label = document.getElementById('recurring-label');
       const deadlineRow = document.getElementById('taak-aanmaken-basisgegevens-deadline-input').closest('div');
+      const panel = document.getElementById('recurring-period-panel');
       if (recurring) {
         btn.style.borderColor = '#6366f1';
         btn.style.background = '#eef2ff';
@@ -248,6 +299,8 @@
         label.className = 'text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium';
         deadlineRow.style.opacity = '0.3';
         deadlineRow.style.pointerEvents = 'none';
+        panel.style.display = '';
+        updatePeriodUI();
       } else {
         btn.style.borderColor = '#e5e7eb';
         btn.style.background = 'white';
@@ -255,6 +308,59 @@
         label.className = 'text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-400 font-medium';
         deadlineRow.style.opacity = '';
         deadlineRow.style.pointerEvents = '';
+        panel.style.display = 'none';
+      }
+    }
+
+    function setPeriod(type) {
+      recurringType = type;
+      updatePeriodUI();
+    }
+
+    function changeInterval(delta) {
+      recurringInterval = Math.max(2, Math.min(30, recurringInterval + delta));
+      document.getElementById('interval-display').textContent = recurringInterval;
+    }
+
+    function toggleWeekday(day) {
+      const i = recurringWeekdays.indexOf(day);
+      if (i >= 0) recurringWeekdays.splice(i, 1);
+      else recurringWeekdays.push(day);
+      updatePeriodUI();
+    }
+
+    function updatePeriodUI() {
+      // Highlight active period button
+      document.querySelectorAll('.period-btn').forEach(btn => {
+        const active = btn.dataset.period === recurringType;
+        btn.className = 'period-btn px-3 py-1.5 rounded-lg border text-sm font-medium transition-all ' +
+          (active ? 'border-primary bg-primary text-white' : 'border-gray-300 bg-white text-gray-600');
+      });
+
+      const intervalRow  = document.getElementById('interval-row');
+      const weeklyRow    = document.getElementById('weekly-row');
+      const weekdaysRow  = document.getElementById('weekdays-row');
+
+      intervalRow.style.display  = recurringType === 'interval'  ? '' : 'none';
+      weeklyRow.style.display    = recurringType === 'weekly'    ? '' : 'none';
+      weekdaysRow.style.display  = recurringType === 'weekdays'  ? '' : 'none';
+
+      if (recurringType === 'interval') {
+        document.getElementById('interval-display').textContent = recurringInterval;
+      }
+
+      if (recurringType === 'weekly') {
+        const day = recurringWeekday ?? new Date().getDay();
+        document.getElementById('weekly-day-label').textContent = DAY_NAMES_NL[day];
+      }
+
+      if (recurringType === 'weekdays') {
+        weekdaysRow.innerHTML = WEEKDAY_ORDER.map(d => {
+          const active = recurringWeekdays.includes(d);
+          return `<button type="button" onclick="toggleWeekday(${d})"
+            class="px-3 py-1.5 rounded-lg border text-sm font-medium transition-all ${active ? 'border-primary bg-primary text-white' : 'border-gray-300 bg-white text-gray-600'}"
+            >${WEEKDAY_LABELS[d]}</button>`;
+        }).join('');
       }
     }
 
@@ -303,9 +409,18 @@
         task.description = document.getElementById('taak-aanmaken-basisgegevens-omschrijving-veld').value.trim();
         if (!recurring) {
           task.deadline = document.getElementById('taak-aanmaken-basisgegevens-deadline-input').value || task.deadline;
+          delete task.recurring;
+          delete task.recurring_type;
+          delete task.recurring_interval;
+          delete task.recurring_weekday;
+          delete task.recurring_weekdays;
         } else {
           task.deadline = null;
           task.recurring = true;
+          task.recurring_type = recurringType;
+          task.recurring_interval = recurringType === 'interval' ? recurringInterval : undefined;
+          task.recurring_weekday  = recurringType === 'weekly'   ? (recurringWeekday ?? new Date().getDay()) : undefined;
+          task.recurring_weekdays = recurringType === 'weekdays' ? [...recurringWeekdays] : undefined;
         }
         task.sessions_total = sessions;
         task.complexity = complexity;

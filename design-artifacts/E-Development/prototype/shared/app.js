@@ -252,9 +252,9 @@ function buildDailyPlan(tasks, settings, energy) {
 
   const todayAvailable = isAvailable(todayStr);
 
-  // Recurring tasks that apply today (not yet completed today)
+  // Recurring tasks that are due today and not yet completed
   const recurringToday = todayAvailable
-    ? tasks.filter(t => t.recurring && t.last_completed !== todayStr && t.status !== 'done')
+    ? tasks.filter(t => t.recurring && isRecurringDueToday(t) && t.last_completed !== todayStr && t.status !== 'done')
     : [];
 
   // Score every regular (non-recurring) pending task by deadline pressure
@@ -318,7 +318,54 @@ function hasSessionToday(taskId, sessions_log) {
 
 // ── Recurring Tasks ───────────────────────────────────────────────────────────
 
-// Resets recurring tasks that were completed on a previous day.
+// Returns true if a recurring task is scheduled for today based on its period setting.
+function isRecurringDueToday(task) {
+  const type = task.recurring_type || 'daily';
+  const todayDay = new Date().getDay(); // 0=Sun, 1=Mon, ..., 6=Sat
+
+  if (type === 'daily') return true;
+
+  if (type === 'interval') {
+    const interval = task.recurring_interval || 2;
+    if (!task.last_completed) return true;
+    const last = new Date(task.last_completed + 'T00:00:00');
+    const now = new Date(); now.setHours(0, 0, 0, 0); last.setHours(0, 0, 0, 0);
+    return Math.round((now - last) / 86400000) >= interval;
+  }
+
+  if (type === 'weekly') {
+    return todayDay === (task.recurring_weekday ?? todayDay);
+  }
+
+  if (type === 'weekdays') {
+    return (task.recurring_weekdays || []).includes(todayDay);
+  }
+
+  return true;
+}
+
+// Returns a short Dutch label for the recurring period (e.g. "Om de 3 dagen", "Iedere maandag").
+function getRecurringLabel(task) {
+  const type = task.recurring_type || 'daily';
+  const DAY_NAMES = ['zondag','maandag','dinsdag','woensdag','donderdag','vrijdag','zaterdag'];
+  const DAY_SHORT = ['zo','ma','di','wo','do','vr','za'];
+  if (type === 'daily') return '↻ Dagelijks';
+  if (type === 'interval') {
+    const n = task.recurring_interval || 2;
+    return n === 2 ? '↻ Om de dag' : `↻ Om de ${n} dagen`;
+  }
+  if (type === 'weekly') {
+    const day = task.recurring_weekday ?? new Date().getDay();
+    return `↻ Iedere ${DAY_NAMES[day]}`;
+  }
+  if (type === 'weekdays') {
+    const days = (task.recurring_weekdays || []).sort((a, b) => a - b);
+    return '↻ ' + days.map(d => DAY_SHORT[d]).join(', ');
+  }
+  return '↻ Herhalend';
+}
+
+// Resets recurring tasks that are due today and were completed on a previous day.
 // Called from initData() so it runs on every page load, on every device.
 function _resetRecurringTasksIfNewDay(data) {
   const today = getDayKey();
@@ -326,11 +373,14 @@ function _resetRecurringTasksIfNewDay(data) {
   for (const task of (data.tasks || [])) {
     if (!task.recurring) continue;
     if (task.last_completed && task.last_completed !== today) {
-      task.sessions_done = 0;
-      task.status = 'pending';
-      task.last_completed = null;
-      if (task.subtasks) task.subtasks.forEach(s => { s.done = false; });
-      changed = true;
+      if (isRecurringDueToday(task)) {
+        task.sessions_done = 0;
+        task.status = 'pending';
+        task.last_completed = null;
+        if (task.subtasks) task.subtasks.forEach(s => { s.done = false; });
+        changed = true;
+      }
+      // else: not due today — leave as done so it stays hidden from shortlist
     }
   }
   if (changed) saveData(data);
@@ -648,9 +698,9 @@ function loadTodayPlan(tasks) {
     if (saved.date !== getDayKey()) return null;
     const taskMap = new Map(tasks.map(t => [t.id, t]));
 
-    // Re-inject recurring tasks not yet completed today (handles new recurring tasks too)
+    // Re-inject recurring tasks due today that haven't been completed yet
     const today = getDayKey();
-    const recurringToday = tasks.filter(t => t.recurring && t.last_completed !== today && t.status !== 'done');
+    const recurringToday = tasks.filter(t => t.recurring && isRecurringDueToday(t) && t.last_completed !== today && t.status !== 'done');
 
     // Only restore non-recurring tasks from cache
     const cachedRequired = (saved.requiredIds || [])
@@ -716,5 +766,5 @@ window.FS = {
   getGreeting,
   navigate,
   isLoggedIn, getAuthToken, setAuthToken, clearAuthToken, pushCloudData, WORKER_URL,
-  applySessionDone,
+  applySessionDone, isRecurringDueToday, getRecurringLabel,
 };
