@@ -63,6 +63,18 @@
   <script>
     let items = [];
     let selected = new Set();
+    let newIds = new Set(); // IDs shown for the first time in this import
+
+    const SEEN_KEY = 'flowstate_magister_seen_ids';
+
+    function loadSeenIds() {
+      try { return new Set(JSON.parse(localStorage.getItem(SEEN_KEY)) || []); }
+      catch { return new Set(); }
+    }
+
+    function saveSeenIds(ids) {
+      localStorage.setItem(SEEN_KEY, JSON.stringify([...ids]));
+    }
 
     (async function () {
       // STEP 1: Persist Magister params immediately — BEFORE initData() which may
@@ -137,6 +149,13 @@
         const imported = new Set(data.tasks.filter(t => t.magister_id).map(t => t.magister_id));
         items = result.assignments.filter(a => !imported.has(a.id));
 
+        // Determine which items are new (not seen in a previous import)
+        const seenIds = loadSeenIds();
+        newIds = new Set(items.filter(a => !seenIds.has(a.id)).map(a => a.id));
+        // Mark all currently shown items as seen
+        items.forEach(a => seenIds.add(a.id));
+        saveSeenIds(seenIds);
+
         console.log('[Magister debug]', result._debug, 'total assignments:', result.assignments?.length, 'after filter:', items.length);
 
         if (items.length === 0) {
@@ -175,10 +194,13 @@
     function renderList() {
       const list       = document.getElementById('import-list');
       const countLabel = document.getElementById('import-review-header-aantal-label');
-      countLabel.textContent = `${items.length} item${items.length !== 1 ? 's' : ''} gevonden`;
+      const newCount   = newIds.size;
+      countLabel.textContent = newCount > 0
+        ? `${items.length} item${items.length !== 1 ? 's' : ''} · ${newCount} nieuw`
+        : `${items.length} item${items.length !== 1 ? 's' : ''} gevonden`;
 
       list.innerHTML = items.map(item => `
-        <label class="flex items-start gap-3 p-4 border border-gray-200 rounded-xl cursor-pointer hover:border-primary/40 hover:bg-indigo-50/30 transition-colors">
+        <label class="flex items-start gap-3 p-4 border ${newIds.has(item.id) ? 'border-indigo-200 bg-indigo-50/40' : 'border-gray-200'} rounded-xl cursor-pointer hover:border-primary/40 hover:bg-indigo-50/30 transition-colors">
           <input type="checkbox"
                  id="cb-${esc(item.id)}"
                  ${selected.has(item.id) ? 'checked' : ''}
@@ -187,6 +209,7 @@
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2">
               <span class="text-sm font-medium text-gray-900 truncate">${esc(item.title)}</span>
+              ${newIds.has(item.id) ? '<span class="text-xs bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded font-semibold flex-shrink-0">NIEUW</span>' : ''}
               ${item.type && item.type !== 'Huiswerk' ? `<span class="text-xs bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded font-medium">${esc(item.type)}</span>` : ''}
             </div>
             <div class="text-xs text-gray-400 mt-0.5">
