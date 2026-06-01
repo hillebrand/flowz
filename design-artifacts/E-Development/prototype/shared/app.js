@@ -126,6 +126,7 @@ async function initData() {
         pushCloudData(cloud);
       }
       localStorage.setItem(APP_KEY, JSON.stringify(cloud));
+      _resetRecurringTasksIfNewDay(cloud);
       return cloud;
     }
     // No cloud data — brand new account, start fresh
@@ -150,6 +151,7 @@ async function initData() {
     const localTs = local._updated_at || 0;
     if (cloudTs > localTs) {
       localStorage.setItem(APP_KEY, JSON.stringify(cloud));
+      _resetRecurringTasksIfNewDay(cloud);
       return cloud;
     } else if (localTs > cloudTs) {
       pushCloudData(local);
@@ -158,6 +160,7 @@ async function initData() {
     pushCloudData(local);
   }
 
+  _resetRecurringTasksIfNewDay(local);
   return local;
 }
 
@@ -249,8 +252,13 @@ function buildDailyPlan(tasks, settings, energy) {
 
   const todayAvailable = isAvailable(todayStr);
 
-  // Score every pending task
-  const pending = tasks.filter(t => t.status !== 'done' && !t.needs_enrichment);
+  // Recurring tasks that apply today (not yet completed today)
+  const recurringToday = todayAvailable
+    ? tasks.filter(t => t.recurring && t.last_completed !== todayStr && t.status !== 'done')
+    : [];
+
+  // Score every regular (non-recurring) pending task by deadline pressure
+  const pending = tasks.filter(t => !t.recurring && t.status !== 'done' && !t.needs_enrichment);
   const scored = pending.map(t => {
     const remaining = Math.max(0, t.sessions_total - t.sessions_done);
     const days      = Math.max(1, availableDaysUntil(t.deadline));
@@ -264,8 +272,8 @@ function buildDailyPlan(tasks, settings, energy) {
     return a.deadline < b.deadline ? -1 : 1;
   });
 
-  if (scored.length === 0 || !todayAvailable) {
-    return { required: [], optional: null, dailyTarget: 0, todayAvailable };
+  if (scored.length === 0 && recurringToday.length === 0 || !todayAvailable) {
+    return { required: [...recurringToday], optional: null, dailyTarget: recurringToday.length, todayAvailable };
   }
 
   // Total load and available capacity
@@ -278,7 +286,7 @@ function buildDailyPlan(tasks, settings, energy) {
   const baseTarget  = Math.ceil(totalRemaining / totalDays);
   const dailyTarget = Math.max(1, forcedCount, baseTarget);
 
-  const required   = scored.slice(0, dailyTarget);
+  const required   = [...recurringToday, ...scored.slice(0, dailyTarget)];
   const candidates = scored.slice(dailyTarget);
 
   // Optional session: skip for low energy unless task is simple
@@ -306,6 +314,38 @@ function getDayKey(date = new Date()) {
 function hasSessionToday(taskId, sessions_log) {
   const today = getDayKey();
   return (sessions_log || []).some(s => s.task_id === taskId && s.date === today);
+}
+
+// ── Recurring Tasks ───────────────────────────────────────────────────────────
+
+// Resets recurring tasks that were completed on a previous day.
+// Called from initData() so it runs on every page load, on every device.
+function _resetRecurringTasksIfNewDay(data) {
+  const today = getDayKey();
+  let changed = false;
+  for (const task of (data.tasks || [])) {
+    if (!task.recurring) continue;
+    if (task.last_completed && task.last_completed !== today) {
+      task.sessions_done = 0;
+      task.status = 'pending';
+      task.last_completed = null;
+      if (task.subtasks) task.subtasks.forEach(s => { s.done = false; });
+      changed = true;
+    }
+  }
+  if (changed) saveData(data);
+}
+
+// Centralized session-completion helper — handles regular and recurring tasks.
+// Mutates task in-place; caller must call saveData(data) afterward.
+function applySessionDone(task) {
+  task.sessions_done = Math.min(task.sessions_total, (task.sessions_done || 0) + 1);
+  if (task.sessions_done >= task.sessions_total) {
+    task.status = 'done';
+    if (task.recurring) task.last_completed = getDayKey();
+  } else {
+    task.status = 'in_progress';
+  }
 }
 
 // ── Session / State ───────────────────────────────────────────────────────────
@@ -387,7 +427,7 @@ function _buildCapacityHelpers(settings) {
 function getCapacityPressuredTaskIds(tasks, settings) {
   const { availableDaysUntil } = _buildCapacityHelpers(settings);
   const ids = [];
-  for (const t of tasks.filter(t => t.status !== 'done')) {
+  for (const t of tasks.filter(t => t.status !== 'done' && !t.recurring)) {
     const remaining = t.sessions_total - t.sessions_done;
     if (remaining <= 0) continue;
     if (availableDaysUntil(t.deadline) < remaining) ids.push(t.id);
@@ -397,7 +437,8 @@ function getCapacityPressuredTaskIds(tasks, settings) {
 
 function getCapacityWarning(tasks, settings) {
   const { availableDaysUntil, availableDayAt } = _buildCapacityHelpers(settings);
-  const pending = tasks.filter(t => t.status !== 'done');
+  // Recurring tasks have no deadline — exclude from all capacity calculations
+  const pending = tasks.filter(t => t.status !== 'done' && !t.recurring);
 
   const WINDOW = 5;
   const BUSY_THRESHOLD = 12;
@@ -606,7 +647,17 @@ function loadTodayPlan(tasks) {
     const saved = JSON.parse(raw);
     if (saved.date !== getDayKey()) return null;
     const taskMap = new Map(tasks.map(t => [t.id, t]));
-    const required = saved.requiredIds.map(id => taskMap.get(id)).filter(Boolean);
+
+    // Re-inject recurring tasks not yet completed today (handles new recurring tasks too)
+    const today = getDayKey();
+    const recurringToday = tasks.filter(t => t.recurring && t.last_completed !== today && t.status !== 'done');
+
+    // Only restore non-recurring tasks from cache
+    const cachedRequired = (saved.requiredIds || [])
+      .map(id => taskMap.get(id))
+      .filter(t => t && !t.recurring);
+
+    const required = [...recurringToday, ...cachedRequired];
     const optional = saved.optionalId ? (taskMap.get(saved.optionalId) || null) : null;
     return { required, optional, todayAvailable: saved.todayAvailable, dailyTarget: saved.dailyTarget };
   } catch { return null; }
@@ -665,4 +716,5 @@ window.FS = {
   getGreeting,
   navigate,
   isLoggedIn, getAuthToken, setAuthToken, clearAuthToken, pushCloudData, WORKER_URL,
+  applySessionDone,
 };

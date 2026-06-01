@@ -8,7 +8,7 @@
   <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5' } } } }</script>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <script src="shared/app.js?v=13"></script>
+  <script src="shared/app.js?v=14"></script>
   <script src="shared/modal.js"></script>
 </head>
 <body class="bg-white min-h-screen flex flex-col">
@@ -197,7 +197,7 @@
       // Taak info
       document.getElementById('taak-detail-bewerken-taak-info-taaknaam').textContent = task.title;
       document.getElementById('taak-detail-bewerken-taak-info-vak-en-deadline').textContent =
-        `Inleveren ${FS.formatDeadline(task.deadline)}`;
+        task.recurring ? '↻ Herhalende taak' : `Inleveren ${FS.formatDeadline(task.deadline)}`;
 
       // Type badge (Proefwerk / Mondeling / Opdracht)
       const existingTypeBadge = document.getElementById('type-badge');
@@ -207,9 +207,9 @@
           .insertAdjacentHTML('beforebegin', `<span id="type-badge" class="inline-block mb-1">${FS.taskTypeBadge(task.type)}</span>`);
       }
 
-      const urgency = FS.getUrgency(task.deadline, Math.max(1, task.sessions_total - task.sessions_done));
+      const urgency = task.recurring ? 'upcoming' : FS.getUrgency(task.deadline, Math.max(1, task.sessions_total - task.sessions_done));
       const urgencyDot = document.getElementById('urgency-dot');
-      urgencyDot.textContent = urgency === 'urgent' ? '🔴' : urgency === 'this_week' ? '🟡' : '🟢';
+      urgencyDot.textContent = task.recurring ? '↻' : (urgency === 'urgent' ? '🔴' : urgency === 'this_week' ? '🟡' : '🟢');
       // Remove previously injected priority badge if re-rendering
       const existingBadge = document.getElementById('priority-badge');
       if (existingBadge) existingBadge.remove();
@@ -324,7 +324,14 @@
       const confirmed = await FS_Modal.showConfirm(msg, { confirmLabel: '✓ Ja, afronden', cancelLabel: 'Annuleren' });
       if (!confirmed) return;
 
-      task.status = 'done';
+      // For recurring tasks, mark done for today (will reset tomorrow)
+      if (task.recurring) {
+        task.sessions_done = task.sessions_total;
+        task.status = 'done';
+        task.last_completed = FS.getDayKey();
+      } else {
+        task.status = 'done';
+      }
       const today = FS.getDayKey();
       data.sessions_log = data.sessions_log || [];
       data.sessions_log.push({ task_id: taskId, date: today });
@@ -358,7 +365,7 @@
       const data = FS.loadData();
       const task = data.tasks.find(t => t.id === taskId);
       if (!task || task.sessions_done >= task.sessions_total) return;
-      task.sessions_done++;
+      FS.applySessionDone(task);
       const today = FS.getDayKey();
       data.sessions_log = data.sessions_log || [];
       data.sessions_log.push({ task_id: taskId, date: today });

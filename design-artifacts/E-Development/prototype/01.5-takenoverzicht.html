@@ -8,7 +8,7 @@
   <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5' } } } }</script>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <script src="shared/app.js?v=13"></script>
+  <script src="shared/app.js?v=14"></script>
   <script src="shared/nav.js"></script>
 </head>
 <body class="bg-gray-50 min-h-screen flex flex-col">
@@ -127,7 +127,7 @@
 
     function render() {
       const data = FS.loadData();
-      const tasks = data.tasks.filter(t => t.status !== 'done');
+      const tasks = data.tasks.filter(t => t.status !== 'done' && !t.recurring);
 
       if (tasks.length === 0) {
         document.getElementById('empty-state').classList.remove('hidden');
@@ -160,7 +160,7 @@
 
     function renderCalendar() {
       const data = FS.loadData();
-      const tasks = data.tasks.filter(t => t.status !== 'done');
+      const tasks = data.tasks.filter(t => t.status !== 'done' && !t.recurring);
 
       // Build deadline map
       const deadlineMap = {};

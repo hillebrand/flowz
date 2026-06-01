@@ -8,7 +8,7 @@
   <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5' } } } }</script>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <script src="shared/app.js?v=13"></script>
+  <script src="shared/app.js?v=14"></script>
   <script src="shared/modal.js"></script>
   <script src="shared/nav.js"></script>
 </head>
@@ -195,16 +195,23 @@
     function taskCard(t, isOptional) {
       const todayDone = FS.hasSessionToday(t.id, _data.sessions_log);
       const task      = _data.tasks.find(d => d.id === t.id) || t;
+      const isRecurring = !!task.recurring;
       const remaining = Math.max(0, task.sessions_total - task.sessions_done);
-      const urgency   = FS.getUrgency(t.deadline, Math.max(1, remaining));
-      const dot       = urgency === 'urgent' ? '🔴' : urgency === 'this_week' ? '🟡' : '🟢';
+      const urgency   = isRecurring ? 'upcoming' : FS.getUrgency(t.deadline, Math.max(1, remaining));
+      const dot       = isRecurring ? '↻' : (urgency === 'urgent' ? '🔴' : urgency === 'this_week' ? '🟡' : '🟢');
       const cardBorder = isOptional
         ? 'border-dashed border-indigo-200 bg-white/60'
-        : urgency === 'urgent'
-          ? 'border-red-200 bg-red-50'
-          : _pressuredIds.has(t.id)
-            ? 'border-amber-200 bg-amber-50'
-            : 'border-gray-100 bg-white';
+        : (isRecurring && !todayDone)
+          ? 'border-indigo-100 bg-indigo-50/40'
+          : urgency === 'urgent'
+            ? 'border-red-200 bg-red-50'
+            : _pressuredIds.has(t.id)
+              ? 'border-amber-200 bg-amber-50'
+              : 'border-gray-100 bg-white';
+
+      const subline = isRecurring
+        ? `<span class="text-xs font-medium text-indigo-400">↻ Dagelijks</span>`
+        : `<span class="text-xs text-gray-400">${FS.formatDeadline(t.deadline)} · nog ${remaining} sessie${remaining !== 1 ? 's' : ''}</span>`;
 
       return `
         <div id="card-${t.id}"
@@ -219,9 +226,7 @@
               <div class="text-sm font-medium ${todayDone ? 'line-through text-gray-400' : 'text-gray-900'}">${t.title}</div>
               ${FS.taskTypeBadge(t.type)}
             </div>
-            <div class="text-xs text-gray-400 mt-0.5">
-              ${FS.formatDeadline(t.deadline)} · nog ${remaining} sessie${remaining !== 1 ? 's' : ''}
-            </div>
+            <div class="mt-0.5">${subline}</div>
           </a>
           <span class="text-base">${dot}</span>
         </div>`;
@@ -269,17 +274,19 @@
         .pop();
 
       if (realIdx === undefined) {
-        // Log session
-        task.sessions_done = Math.min(task.sessions_total, task.sessions_done + 1);
-        if (task.sessions_done >= task.sessions_total) task.status = 'done';
+        // Log session — use centralized helper (handles recurring last_completed too)
+        FS.applySessionDone(task);
         _data.sessions_log.push({ task_id: id, date: todayStr });
         if (!_data.study_days) _data.study_days = [];
         if (!_data.study_days.includes(todayStr)) _data.study_days.push(todayStr);
         FS.showToast(FS.getCompletionCompliment() + ' +10 XP ⚡');
       } else {
-        // Undo session
+        // Undo session — recurring: clear last_completed so it reappears
         task.sessions_done = Math.max(0, task.sessions_done - 1);
-        if (task.status === 'done' && task.sessions_done < task.sessions_total) task.status = 'pending';
+        if (task.status === 'done' && task.sessions_done < task.sessions_total) {
+          task.status = 'pending';
+          if (task.recurring) task.last_completed = null;
+        }
         _data.sessions_log.splice(realIdx, 1);
         // Clean up study_days if no sessions remain today
         const stillHasToday = _data.sessions_log.some(s => s.date === todayStr);

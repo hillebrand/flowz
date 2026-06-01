@@ -8,7 +8,7 @@
   <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5' } } } }</script>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <script src="shared/app.js?v=13"></script>
+  <script src="shared/app.js?v=14"></script>
   <style>
     .timer-ring { transform: rotate(-90deg); transform-origin: 50% 50%; }
     @keyframes fadeInUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
@@ -243,12 +243,11 @@
     function completeSession() {
       releaseWakeLock();
       sessionStorage.removeItem(SESSION_END_KEY);
-      // Mark session as done
+      // Mark session as done — centralized helper handles recurring tasks too
       const data = FS.loadData();
       const task = data.tasks.find(t => t.id === taskId);
       if (task && task.sessions_done < task.sessions_total) {
-        task.sessions_done++;
-        if (task.sessions_done >= task.sessions_total) task.status = 'done';
+        FS.applySessionDone(task);
         data.sessions_log = data.sessions_log || [];
         data.sessions_log.push({ task_id: taskId, date: FS.getDayKey() });
         const today = FS.getDayKey();

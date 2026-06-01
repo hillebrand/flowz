@@ -8,7 +8,7 @@
   <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5' } } } }</script>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <script src="shared/app.js?v=13"></script>
+  <script src="shared/app.js?v=14"></script>
   <script src="shared/modal.js"></script>
 </head>
 <body class="bg-white min-h-screen flex flex-col">
@@ -46,6 +46,19 @@
                type="date"
                class="w-full border border-gray-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary">
       </div>
+
+      <!-- Recurring toggle -->
+      <button type="button" onclick="toggleRecurring()"
+              class="w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all"
+              id="recurring-btn"
+              data-active="false"
+              style="border-color:#e5e7eb; background:white">
+        <span class="flex items-center gap-2 text-sm font-medium text-gray-600">
+          <span>↻</span> Herhalende taak
+        </span>
+        <span id="recurring-label"
+              class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-400 font-medium">Uit</span>
+      </button>
     </div>
 
     <!-- Section: Verrijking -->
@@ -134,6 +147,7 @@
     let sessions = 1;
     let complexity = 'medium';
     let priority = 'normal';
+    let recurring = false;
     let subtasks = [];
     let materials = [];
 
@@ -161,6 +175,7 @@
       sessions = task.sessions_total || 1;
       complexity = task.complexity || 'medium';
       priority = task.priority || 'normal';
+      recurring = task.recurring || false;
       subtasks = [...(task.subtasks || [])];
       materials = [...(task.materials || [])];
 
@@ -173,6 +188,7 @@
       document.getElementById('taak-aanmaken-verrijking-sessies-stepper').textContent = sessions;
       updateComplexityUI();
       updatePriorityUI();
+      updateRecurringUI();
       renderSubtasks();
       renderMaterials();
 
@@ -214,6 +230,32 @@
         btn.className = 'priority-btn flex-1 py-2.5 rounded-xl border text-sm font-medium transition-all ' +
           (active ? 'border-primary bg-primary/10 text-primary' : 'border-gray-200 text-gray-500');
       });
+    }
+
+    function toggleRecurring() {
+      recurring = !recurring;
+      updateRecurringUI();
+    }
+
+    function updateRecurringUI() {
+      const btn = document.getElementById('recurring-btn');
+      const label = document.getElementById('recurring-label');
+      const deadlineRow = document.getElementById('taak-aanmaken-basisgegevens-deadline-input').closest('div');
+      if (recurring) {
+        btn.style.borderColor = '#6366f1';
+        btn.style.background = '#eef2ff';
+        label.textContent = 'Aan';
+        label.className = 'text-xs px-2 py-0.5 rounded-full bg-primary/10 text-primary font-medium';
+        deadlineRow.style.opacity = '0.3';
+        deadlineRow.style.pointerEvents = 'none';
+      } else {
+        btn.style.borderColor = '#e5e7eb';
+        btn.style.background = 'white';
+        label.textContent = 'Uit';
+        label.className = 'text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-400 font-medium';
+        deadlineRow.style.opacity = '';
+        deadlineRow.style.pointerEvents = '';
+      }
     }
 
     async function addSubtask() {
@@ -259,7 +301,12 @@
       if (task) {
         task.title = document.getElementById('taak-aanmaken-basisgegevens-taaknaam-veld').value.trim() || task.title;
         task.description = document.getElementById('taak-aanmaken-basisgegevens-omschrijving-veld').value.trim();
-        task.deadline = document.getElementById('taak-aanmaken-basisgegevens-deadline-input').value || task.deadline;
+        if (!recurring) {
+          task.deadline = document.getElementById('taak-aanmaken-basisgegevens-deadline-input').value || task.deadline;
+        } else {
+          task.deadline = null;
+          task.recurring = true;
+        }
         task.sessions_total = sessions;
         task.complexity = complexity;
         task.priority = priority;
