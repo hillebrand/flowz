@@ -341,11 +341,11 @@ function setTodayEnergy(energy) {
 //   forced  = max(0, R - before - after)
 // Warns on the nearest window that hits the threshold (≥12 sessions).
 
-function getCapacityWarning(tasks, settings) {
+// Shared calendar helpers used by both capacity functions below.
+function _buildCapacityHelpers(settings) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const pending = tasks.filter(t => t.status !== 'done');
-  const blocked = (settings.blocked_days && settings.blocked_days.specific) || [];
+  const blocked          = (settings.blocked_days && settings.blocked_days.specific)  || [];
   const recurringBlocked = (settings.blocked_days && settings.blocked_days.recurring) || ['saturday', 'sunday'];
   const dayNames = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
 
@@ -356,7 +356,6 @@ function getCapacityWarning(tasks, settings) {
     return true;
   }
 
-  // Count available study days between today (inclusive) and a deadline (exclusive)
   function availableDaysUntil(deadline) {
     let count = 0;
     const cur = new Date(today);
@@ -368,7 +367,6 @@ function getCapacityWarning(tasks, settings) {
     return count;
   }
 
-  // Return the calendar date of the (n+1)th available day (0-based offset n)
   function availableDayAt(n) {
     const cur = new Date(today);
     let found = -1;
@@ -382,7 +380,25 @@ function getCapacityWarning(tasks, settings) {
     return null;
   }
 
-  // Compute session load forced into a 5-day window that starts after S available days
+  return { today, isAvailable, availableDaysUntil, availableDayAt };
+}
+
+// Returns IDs of tasks that have fewer available study days than sessions remaining.
+function getCapacityPressuredTaskIds(tasks, settings) {
+  const { availableDaysUntil } = _buildCapacityHelpers(settings);
+  const ids = [];
+  for (const t of tasks.filter(t => t.status !== 'done')) {
+    const remaining = t.sessions_total - t.sessions_done;
+    if (remaining <= 0) continue;
+    if (availableDaysUntil(t.deadline) < remaining) ids.push(t.id);
+  }
+  return ids;
+}
+
+function getCapacityWarning(tasks, settings) {
+  const { availableDaysUntil, availableDayAt } = _buildCapacityHelpers(settings);
+  const pending = tasks.filter(t => t.status !== 'done');
+
   const WINDOW = 5;
   const BUSY_THRESHOLD = 12;
 
@@ -403,9 +419,8 @@ function getCapacityWarning(tasks, settings) {
   for (const t of pending) {
     const remaining = t.sessions_total - t.sessions_done;
     if (remaining <= 0) continue;
-    const days = availableDaysUntil(t.deadline);
-    if (days < remaining) {
-      return `📅 "${t.title}" — te weinig tijd voor ${remaining} sessie${remaining !== 1 ? 's' : ''}`;
+    if (availableDaysUntil(t.deadline) < remaining) {
+      return '📅 Er zijn taken waarvoor je te weinig tijd hebt.';
     }
   }
 
@@ -419,7 +434,6 @@ function getCapacityWarning(tasks, settings) {
   for (const { s, label } of offsets) {
     const load = sessionsInWindow(s);
     if (load >= BUSY_THRESHOLD) {
-      // For future windows, add the calendar date of window start for context
       if (s === 0) {
         return `📅 Drukke periode — ${load} sessies in ${WINDOW} dagen`;
       }
@@ -642,7 +656,7 @@ window.FS = {
   buildDailyPlan, hasSessionToday,
   isSetupDone, markSetupDone,
   getTodayEnergy, setTodayEnergy,
-  getCapacityWarning,
+  getCapacityWarning, getCapacityPressuredTaskIds,
   getActiveSession, setActiveSession, clearActiveSession,
   getDayKey,
   calcStreak, getStreakStatus, getStreakMessage,

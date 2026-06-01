@@ -104,6 +104,7 @@
 
     let _data = null;
     let _plan = null;
+    let _pressuredIds = new Set();
     let _confettiFired = false;
 
     (async function() {
@@ -128,8 +129,11 @@
       const capWarning = FS.getCapacityWarning(_data.tasks, _data.settings || {});
       if (capWarning) {
         document.getElementById('shortlist-vandaag-dagstatus-capaciteitsdruk-banner').classList.remove('hidden');
-        document.getElementById('capaciteitsdruk-tekst').textContent = capWarning;
+        document.getElementById('capaciteitsdruk-tekst').textContent = 'Er zijn taken waarvoor je mogelijk te weinig tijd hebt.';
       }
+
+      // IDs of tasks with capacity pressure (for orange card highlight)
+      _pressuredIds = new Set(FS.getCapacityPressuredTaskIds(_data.tasks, _data.settings || {}));
 
       // Load today's plan from sessionStorage (stable across navigation)
       // or build fresh and save it
@@ -198,7 +202,9 @@
         ? 'border-dashed border-indigo-200 bg-white/60'
         : urgency === 'urgent'
           ? 'border-red-200 bg-red-50'
-          : 'border-gray-100 bg-white';
+          : _pressuredIds.has(t.id)
+            ? 'border-amber-200 bg-amber-50'
+            : 'border-gray-100 bg-white';
 
       return `
         <div id="card-${t.id}"
