@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FlowState — Session Done</title>
+  <title>Flowz — Session Done</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5' } } } }</script>
   <link rel="manifest" href="manifest.json">
@@ -18,7 +18,9 @@
 
   <main class="flex-1 flex flex-col items-center justify-center px-6 py-10 max-w-sm mx-auto w-full text-center">
 
-    <div id="sessie-afgerond-bevestiging-beloning-emoji" class="text-7xl mb-6 pop-in">🎉</div>
+    <div id="sessie-afgerond-bevestiging-beloning-emoji" class="mb-6 pop-in">
+      <img src="assets/illustration-celebrating.svg" alt="🎉" class="w-28 h-28 mx-auto" id="sessie-done-illustration">
+    </div>
 
     <h1 id="sessie-afgerond-bevestiging-hoofd-boodschap"
         class="text-2xl font-bold text-gray-900 mb-2">Sessie afgerond!</h1>
@@ -64,7 +66,7 @@
       const allDone = done >= total;
 
       if (allDone) {
-        document.getElementById('sessie-afgerond-bevestiging-beloning-emoji').textContent = '🏆';
+        document.getElementById('sessie-done-illustration').src = 'assets/illustration-celebrating.svg';
         document.getElementById('sessie-afgerond-bevestiging-hoofd-boodschap').textContent = 'Taak voltooid! 🏆';
       }
 

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FlowState — Session</title>
+  <title>Flowz — Session</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5' } } } }</script>
   <link rel="manifest" href="manifest.json">
@@ -76,7 +76,7 @@
     let timerInterval = null;
     let sessionEndTime = null; // absolute timestamp when timer should reach 0
     const CIRCUMFERENCE = 2 * Math.PI * 44; // ≈ 276.46
-    const SESSION_END_KEY = 'flowstate_session_end';
+    const SESSION_END_KEY = 'flowz_session_end';
 
     // WakeLock: keep screen alive during study session
     let wakeLock = null;

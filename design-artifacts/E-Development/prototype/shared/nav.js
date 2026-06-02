@@ -1,4 +1,4 @@
-// FlowState — Navigation Drawer
+// Flowz — Navigation Drawer
 // Injects a side nav drawer + bottom bar into every page
 
 function injectNav(activePage) {
@@ -9,9 +9,8 @@ function injectNav(activePage) {
     <!-- Side Nav Drawer -->
     <nav id="nav-drawer" class="fixed top-0 left-0 h-full w-64 bg-white z-50 shadow-xl transform -translate-x-full transition-transform duration-300">
       <div class="p-6 border-b border-gray-100">
-        <div class="flex items-center gap-2">
-          <span class="text-2xl">✦</span>
-          <span class="font-bold text-lg text-gray-900">FlowState</span>
+        <div class="flex items-center">
+          <img src="../assets/logo-light.svg" alt="Flowz" class="h-8 w-auto">
         </div>
       </div>
       <ul class="p-4 space-y-1">

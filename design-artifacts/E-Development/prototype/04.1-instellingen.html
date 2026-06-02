@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FlowState — Instellingen</title>
+  <title>Flowz — Instellingen</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5' } } } }</script>
   <link rel="manifest" href="manifest.json">
@@ -187,7 +187,7 @@
       // Profiel
       document.getElementById('instellingen-profiel-naam').value = s.name || '';
       document.getElementById('instellingen-profiel-email').textContent =
-        s.email || localStorage.getItem('flowstate_user_email') || '';
+        s.email || localStorage.getItem('flowz_user_email') || '';
 
       // Sessieduur
       document.getElementById('instellingen-studeersessie-sessieduur-dropdown').value =
@@ -229,7 +229,7 @@
       data.settings.reminder_enabled = document.getElementById('instellingen-herinneringen-herinnering-toggle').checked;
       data.settings.reminder_time = document.getElementById('instellingen-herinneringen-tijdpicker').value;
       data._updated_at = Date.now();
-      localStorage.setItem('flowstate_data', JSON.stringify(data));
+      localStorage.setItem('flowz_data', JSON.stringify(data));
       // await the cloud push so data is safely stored before the toast disappears
       await FS.pushCloudData(data);
 
@@ -244,10 +244,10 @@
 
     function logout() {
       FS.clearAuthToken();
-      localStorage.removeItem('flowstate_data');
-      localStorage.removeItem('flowstate_setup_done');
-      localStorage.removeItem('flowstate_energy_today');
-      localStorage.removeItem('flowstate_user_email');
+      localStorage.removeItem('flowz_data');
+      localStorage.removeItem('flowz_setup_done');
+      localStorage.removeItem('flowz_energy_today');
+      localStorage.removeItem('flowz_user_email');
       window.location.replace('00.1-login.html');
     }
 

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FlowState — Break</title>
+  <title>Flowz — Break</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5' } } } }</script>
   <link rel="manifest" href="manifest.json">
@@ -18,6 +18,7 @@
   <main class="flex-1 flex flex-col items-center justify-between px-6 py-10 max-w-sm mx-auto w-full">
 
     <div class="text-center">
+      <img src="assets/illustration-sleeping.svg" alt="" class="w-24 h-24 mx-auto mb-3" aria-hidden="true">
       <h1 class="text-2xl font-bold text-gray-900 mb-1">Pauze!</h1>
       <p class="text-sm text-gray-400">Je hebt het verdiend 🌿</p>
     </div>
@@ -57,7 +58,7 @@
     let timerInterval = null;
     let breakEndTime = null; // absolute timestamp when break should reach 0
     const CIRCUMFERENCE = 2 * Math.PI * 44;
-    const BREAK_END_KEY = 'flowstate_break_end';
+    const BREAK_END_KEY = 'flowz_break_end';
 
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible' && breakEndTime) {

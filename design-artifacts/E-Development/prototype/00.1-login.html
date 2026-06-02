@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>FlowState — Inloggen</title>
+  <title>Flowz — Inloggen</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5' } } } }</script>
   <link rel="manifest" href="manifest.json">
@@ -14,8 +14,9 @@
   <main class="flex-1 flex flex-col justify-center px-6 py-10 max-w-sm mx-auto w-full">
 
     <div class="text-center mb-10">
-      <div class="text-5xl mb-4">✦</div>
-      <h1 class="text-2xl font-bold text-gray-900">FlowState</h1>
+      <div class="flex justify-center mb-4">
+        <img src="assets/logo-light.svg" alt="Flowz" class="h-10 w-auto">
+      </div>
       <p class="text-sm text-gray-400 mt-1">Log in om door te gaan</p>
     </div>
 
@@ -86,8 +87,8 @@
           showError(body.error || 'Inloggen mislukt');
           return;
         }
-        localStorage.setItem('flowstate_auth_token', body.token);
-        localStorage.setItem('flowstate_user_email', email);
+        localStorage.setItem('flowz_auth_token', body.token);
+        localStorage.setItem('flowz_user_email', email);
         // If the bookmarklet sent the user here via a login-wall redirect,
         // go back to the import page where the pending params are waiting.
         const returnTo = localStorage.getItem('pending_magister_token')
