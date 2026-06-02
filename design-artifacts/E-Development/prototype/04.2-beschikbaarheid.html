@@ -4,17 +4,19 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Flowz — Beschikbaarheid</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5' } } } }</script>
+  <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5', 'flowz-purple': '#2C0094', 'flowz-nav': '#C6C9FF' }, fontFamily: { karla: ['Karla', 'sans-serif'] } } } }</script>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
   <script src="shared/app.js?v=15"></script>
 </head>
-<body class="bg-gray-50 min-h-screen flex flex-col">
+<body class="bg-gray-50 min-h-screen flex flex-col font-karla">
 
-  <header class="bg-white flex items-center px-4 py-4 border-b border-gray-100 sticky top-0 z-30">
-    <a href="04.1-instellingen.html" class="text-gray-500 hover:text-gray-800 text-sm font-medium flex items-center gap-1 w-16">← Terug</a>
-    <span class="flex-1 text-center font-bold text-gray-900">Beschikbaarheid</span>
+  <header class="bg-[#C6C9FF] flex items-center px-4 py-3 sticky top-0 z-30">
+    <a href="04.1-instellingen.html" class="text-[#2C0094] hover:opacity-70 text-sm font-medium flex items-center gap-1 w-16">← Terug</a>
+    <span class="flex-1 text-center font-bold text-[#2C0094]">Beschikbaarheid</span>
     <div class="w-16"></div>
   </header>
 
@@ -28,14 +30,14 @@
 
     <!-- Recurring blocked days -->
     <div class="bg-white rounded-2xl px-5 py-5 shadow-sm border border-gray-100">
-      <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-4">Wekelijks geblokkeerde dagen</h3>
+      <h3 class="text-xs font-bold text-[#2C0094] opacity-60 uppercase tracking-wide mb-4">Wekelijks geblokkeerde dagen</h3>
       <p class="text-xs text-gray-400 mb-4">Tik een dag aan om hem elke week te blokkeren.</p>
       <div id="weekday-toggles" class="grid grid-cols-7 gap-1.5"></div>
     </div>
 
     <!-- Specific dates -->
     <div class="bg-white rounded-2xl px-5 py-5 shadow-sm border border-gray-100">
-      <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-4">Eenmalige geblokkeerde datums</h3>
+      <h3 class="text-xs font-bold text-[#2C0094] opacity-60 uppercase tracking-wide mb-4">Eenmalige geblokkeerde datums</h3>
       <div class="flex items-center justify-between mb-4">
         <button onclick="prevMonth()" class="text-gray-400 hover:text-gray-700 w-8 h-8 flex items-center justify-center rounded-xl hover:bg-gray-100">‹</button>
         <span id="cal-month-label" class="text-sm font-semibold text-gray-800"></span>

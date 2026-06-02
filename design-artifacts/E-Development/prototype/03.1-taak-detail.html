@@ -4,17 +4,19 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Flowz — Task Detail</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5' } } } }</script>
+  <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5', 'flowz-purple': '#2C0094', 'flowz-nav': '#C6C9FF' }, fontFamily: { karla: ['Karla', 'sans-serif'] } } } }</script>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
   <script src="shared/app.js?v=15"></script>
   <script src="shared/modal.js"></script>
 </head>
-<body class="bg-white min-h-screen flex flex-col">
+<body class="bg-white min-h-screen flex flex-col font-karla">
 
-  <header class="flex items-center px-4 py-4 border-b border-gray-100">
-    <button onclick="history.back()" class="text-gray-500 hover:text-gray-800 text-sm font-medium flex items-center gap-1 w-16">← Terug</button>
+  <header class="bg-[#C6C9FF] flex items-center px-4 py-3">
+    <button onclick="history.back()" class="text-[#2C0094] hover:opacity-70 text-sm font-medium flex items-center gap-1 w-16">← Terug</button>
     <span class="flex-1 flex justify-center"><img src="assets/logo-light.svg" alt="Flowz" class="h-6 w-auto"></span>
     <button id="taak-detail-bewerken-header-bewerk-knop"
             onclick="toggleEdit()"
@@ -148,14 +150,14 @@
 
     <!-- Section: Subtaken -->
     <div id="subtask-section" class="mb-6">
-      <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Deeltaken</h3>
+      <h3 class="text-xs font-bold text-[#2C0094] opacity-60 uppercase tracking-wide mb-3">Deeltaken</h3>
       <div id="subtask-list" class="space-y-2"></div>
       <div id="no-subtasks" class="hidden text-xs text-gray-300 italic">Geen deeltaken toegevoegd</div>
     </div>
 
     <!-- Section: Benodigdheden -->
     <div id="materials-section" class="mb-6">
-      <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Benodigdheden</h3>
+      <h3 class="text-xs font-bold text-[#2C0094] opacity-60 uppercase tracking-wide mb-2">Benodigdheden</h3>
       <div id="materials-list" class="flex flex-wrap gap-2"></div>
       <div id="no-materials" class="hidden text-xs text-gray-300 italic">Geen benodigdheden toegevoegd</div>
     </div>

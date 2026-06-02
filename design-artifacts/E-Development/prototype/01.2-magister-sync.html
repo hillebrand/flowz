@@ -4,23 +4,21 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Flowz — Connect Magister</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5' } } }
-    }
-  </script>
+  <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5', 'flowz-purple': '#2C0094', 'flowz-nav': '#C6C9FF' }, fontFamily: { karla: ['Karla', 'sans-serif'] } } } }</script>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
   <script src="shared/app.js?v=15"></script>
 </head>
-<body class="bg-white min-h-screen flex flex-col">
+<body class="bg-white min-h-screen flex flex-col font-karla">
 
   <!-- App Header (minimal — no nav during setup) -->
-  <header class="flex items-center px-4 py-4 border-b border-gray-100">
+  <header class="bg-[#C6C9FF] flex items-center px-4 py-3">
     <a id="magister-sync-navigatie-terug-link"
        href="01.1-welkomst.html"
-       class="text-gray-500 hover:text-gray-800 transition-colors text-sm font-medium flex items-center gap-1">
+       class="text-[#2C0094] hover:opacity-70 transition-opacity text-sm font-medium flex items-center gap-1">
       ← Terug
     </a>
     <span class="flex-1 flex justify-center"><img src="assets/logo-light.svg" alt="Flowz" class="h-6 w-auto"></span>

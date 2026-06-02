@@ -4,18 +4,20 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Flowz — Instellingen</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Karla:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5' } } } }</script>
+  <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5', 'flowz-purple': '#2C0094', 'flowz-nav': '#C6C9FF' }, fontFamily: { karla: ['Karla', 'sans-serif'] } } } }</script>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
   <script src="shared/app.js?v=15"></script>
   <script src="shared/nav.js"></script>
 </head>
-<body class="bg-gray-50 min-h-screen flex flex-col">
+<body class="bg-gray-50 min-h-screen flex flex-col font-karla">
 
-  <header class="bg-white flex items-center px-4 py-4 border-b border-gray-100 sticky top-0 z-30">
-    <button onclick="openNav()" class="text-gray-600 hover:text-gray-900 text-xl w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-colors">☰</button>
-    <span class="flex-1 text-center font-bold text-gray-900">Instellingen</span>
+  <header class="bg-[#C6C9FF] flex items-center px-4 py-3 sticky top-0 z-30">
+    <button onclick="openNav()" class="text-[#2C0094] hover:opacity-70 w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-opacity"><svg viewBox="0 0 30 22" fill="none" class="w-6 h-5"><rect y="0" width="30" height="2.6" rx="1.3" fill="#2C0094"/><rect y="9.1" width="30" height="2.6" rx="1.3" fill="#2C0094"/><rect y="18.4" width="30" height="2.6" rx="1.3" fill="#2C0094"/></svg></button>
+    <span class="flex-1 text-center font-bold text-[#2C0094]">Instellingen</span>
     <div class="w-10"></div>
   </header>
 
@@ -29,7 +31,7 @@
 
     <!-- Section: Profiel -->
     <div class="bg-white rounded-2xl px-5 py-5 shadow-sm border border-gray-100">
-      <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-4">Profiel</h3>
+      <h3 class="text-xs font-bold text-[#2C0094] opacity-60 uppercase tracking-wide mb-4">Profiel</h3>
       <div class="space-y-3">
         <div>
           <label class="block text-xs text-gray-400 mb-1">Voornaam</label>
@@ -46,7 +48,7 @@
 
     <!-- Section: Studiesessies -->
     <div class="bg-white rounded-2xl px-5 py-5 shadow-sm border border-gray-100">
-      <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-4">Studiesessies</h3>
+      <h3 class="text-xs font-bold text-[#2C0094] opacity-60 uppercase tracking-wide mb-4">Studiesessies</h3>
       <div class="flex items-center justify-between mb-3">
         <span class="text-sm text-gray-700">Sessieduur</span>
         <select id="instellingen-studeersessie-sessieduur-dropdown"
@@ -72,7 +74,7 @@
 
     <!-- Section: Beschikbaarheid -->
     <div class="bg-white rounded-2xl px-5 py-5 shadow-sm border border-gray-100">
-      <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-4">Beschikbaarheid</h3>
+      <h3 class="text-xs font-bold text-[#2C0094] opacity-60 uppercase tracking-wide mb-4">Beschikbaarheid</h3>
       <a href="04.2-beschikbaarheid.html"
          class="flex items-center justify-between group">
         <span class="text-sm text-gray-700">Geblokkeerde dagen beheren</span>
@@ -82,7 +84,7 @@
 
     <!-- Section: Herinneringen -->
     <div class="bg-white rounded-2xl px-5 py-5 shadow-sm border border-gray-100">
-      <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-4">Herinneringen</h3>
+      <h3 class="text-xs font-bold text-[#2C0094] opacity-60 uppercase tracking-wide mb-4">Herinneringen</h3>
       <div class="flex items-center justify-between mb-4">
         <span class="text-sm text-gray-700">Dagelijkse herinnering</span>
         <label class="relative inline-flex items-center cursor-pointer">
@@ -110,7 +112,7 @@
 
     <!-- Section: Account -->
     <div class="bg-white rounded-2xl px-5 py-5 shadow-sm border border-gray-100">
-      <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-4">Account</h3>
+      <h3 class="text-xs font-bold text-[#2C0094] opacity-60 uppercase tracking-wide mb-4">Account</h3>
       <div class="space-y-4">
 
         <!-- Change password -->
