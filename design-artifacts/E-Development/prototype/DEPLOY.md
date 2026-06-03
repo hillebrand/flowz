@@ -1,4 +1,4 @@
-# FlowState — GitHub Pages Deployment
+# Flowz — GitHub Pages Deployment
 
 ## Eenmalige setup
 
@@ -14,7 +14,7 @@ Open een terminal in de map `design-artifacts/E-Development/prototype/` en voer 
 ```bash
 git init
 git add .
-git commit -m "Initial FlowState prototype"
+git commit -m "Initial Flowz prototype"
 git branch -M main
 git remote add origin https://github.com/JOUW-GEBRUIKERSNAAM/flowstate.git
 git push -u origin main

@@ -21,7 +21,7 @@
   <main class="flex-1 flex flex-col items-center justify-center px-6 py-10 max-w-sm mx-auto w-full text-center">
 
     <div id="sessie-afgerond-bevestiging-beloning-emoji" class="mb-6 pop-in">
-      <img src="assets/illustration-celebrating.svg" alt="🎉" class="w-28 h-28 mx-auto" id="sessie-done-illustration">
+      <div id="sessie-done-illustration" class="text-6xl leading-none">🎉</div>
     </div>
 
     <h1 id="sessie-afgerond-bevestiging-hoofd-boodschap"
@@ -68,7 +68,7 @@
       const allDone = done >= total;
 
       if (allDone) {
-        document.getElementById('sessie-done-illustration').src = 'assets/illustration-celebrating.svg';
+        document.getElementById('sessie-done-illustration').textContent = '🏆';
         document.getElementById('sessie-afgerond-bevestiging-hoofd-boodschap').textContent = 'Taak voltooid! 🏆';
       }
 

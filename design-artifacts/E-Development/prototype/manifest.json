@@ -1,6 +1,6 @@
 {
-  "name": "FlowState",
-  "short_name": "FlowState",
+  "name": "Flowz",
+  "short_name": "Flowz",
   "description": "Your study planner that thinks with you",
   "start_url": "/",
   "display": "standalone",

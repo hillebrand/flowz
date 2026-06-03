@@ -1,4 +1,4 @@
-// FlowState — Custom Modal Utility
+// Flowz — Custom Modal Utility
 // Replaces native browser prompt() / confirm() with styled bottom-sheet modals
 
 (function injectStyles() {

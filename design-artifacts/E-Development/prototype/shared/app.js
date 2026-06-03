@@ -1,15 +1,15 @@
-// FlowState — App Data Store
+// Flowz — App Data Store
 // Handles LocalStorage persistence, task queries, and energy algorithm
 
-const APP_KEY = 'flowstate_data';
-const ENERGY_KEY = 'flowstate_energy_today';
-const SETUP_KEY = 'flowstate_setup_done';
+const APP_KEY = 'flowz_data';
+const ENERGY_KEY = 'flowz_energy_today';
+const SETUP_KEY = 'flowz_setup_done';
 const DATA_VERSION = 3; // bump to reset stored data on breaking changes
 
 // ── Auth ─────────────────────────────────────────────────────────────────────
 
 const WORKER_URL = 'https://flowstate-proxy.flowstate-evelien.workers.dev';
-const AUTH_TOKEN_KEY = 'flowstate_auth_token';
+const AUTH_TOKEN_KEY = 'flowz_auth_token';
 
 function getAuthToken() { return localStorage.getItem(AUTH_TOKEN_KEY); }
 function setAuthToken(token) { localStorage.setItem(AUTH_TOKEN_KEY, token); }
@@ -44,7 +44,7 @@ async function fetchCloudEmail() {
     });
     if (!r.ok) return null;
     const { email } = await r.json();
-    if (email) localStorage.setItem('flowstate_user_email', email);
+    if (email) localStorage.setItem('flowz_user_email', email);
     return email;
   } catch { return null; }
 }
@@ -119,10 +119,10 @@ async function initData() {
     // New device or outdated data — fetch cloud FIRST to avoid overwriting real data
     const cloud = await fetchCloudData();
     if (cloud && (cloud._version || 0) >= DATA_VERSION) {
-      const pendingName = localStorage.getItem('flowstate_pending_name');
+      const pendingName = localStorage.getItem('flowz_pending_name');
       if (pendingName) {
         cloud.settings.name = pendingName;
-        localStorage.removeItem('flowstate_pending_name');
+        localStorage.removeItem('flowz_pending_name');
         pushCloudData(cloud);
       }
       localStorage.setItem(APP_KEY, JSON.stringify(cloud));
@@ -133,10 +133,10 @@ async function initData() {
     local = JSON.parse(JSON.stringify(DEMO_DATA));
     local._version = DATA_VERSION;
     local._updated_at = 0;
-    const pendingName = localStorage.getItem('flowstate_pending_name');
+    const pendingName = localStorage.getItem('flowz_pending_name');
     if (pendingName) {
       local.settings.name = pendingName;
-      localStorage.removeItem('flowstate_pending_name');
+      localStorage.removeItem('flowz_pending_name');
     }
     localStorage.removeItem(SETUP_KEY);
     localStorage.removeItem(ENERGY_KEY);
@@ -542,12 +542,12 @@ function getCapacityWarning(tasks, settings) {
 // ── Active Session (sessionStorage) ──────────────────────────────────────────
 
 function getActiveSession() {
-  const raw = sessionStorage.getItem('flowstate_active_session');
+  const raw = sessionStorage.getItem('flowz_active_session');
   return raw ? JSON.parse(raw) : null;
 }
 
 function setActiveSession(taskId, sessionNumber) {
-  sessionStorage.setItem('flowstate_active_session', JSON.stringify({
+  sessionStorage.setItem('flowz_active_session', JSON.stringify({
     taskId,
     sessionNumber,
     startedAt: Date.now()
@@ -555,7 +555,7 @@ function setActiveSession(taskId, sessionNumber) {
 }
 
 function clearActiveSession() {
-  sessionStorage.removeItem('flowstate_active_session');
+  sessionStorage.removeItem('flowz_active_session');
 }
 
 
@@ -603,18 +603,48 @@ function getStreakMessage(streak, studiedToday) {
   return `${streak} dagen! Certified studeerheld, periodt 👑🔥`;
 }
 
-const _COMPLIMENTS = [
-  'Slay! Weer een sessie erop 🎉',
-  'No cap, je bent écht aan het groeien 📈',
-  'W sessie! Elke keer een beetje beter 💪',
-  'Bestie, je hersenen bedanken je later 🧠',
-  'Periodt! Weer een stap dichter bij je doel 🚀',
-  'Lowkey trots op je rn ⭐',
-  'That\'s the move — consistent blijven 🔑',
-  'You ate! Serieus goed bezig 🔥',
-];
+// Compliment generator — combinatorisch zodat elke sessie een unieke zin krijgt.
+// ~14 openers × ~18 cores × ~12 slotters = 3.000+ unieke combinaties.
+const _CG = {
+  openers: [
+    'Slay!', 'No cap,', 'Bestie,', 'W move!', 'Fr fr,', 'Lowkey,',
+    'Periodt!', 'You ate!!', 'Not me being proud —', 'Echt niet gelogen,',
+    'Aye!', 'Respectfully,', 'Dat is de move —', 'Cijfer of niet,',
+  ],
+  cores: [
+    'je hersenen bedanken je straks',
+    'je bent écht aan het groeien',
+    'elke sessie telt en jij laat dat zien',
+    'consistent blijven is de echte skill en jij hebt hem',
+    'jij pakt dat ritme écht',
+    'dit is precies die vibe',
+    'jij gaat ver met deze mindset',
+    'je bent al beter dan gisteren',
+    'dit is die main character energy',
+    'deadlines krijgen jou niet',
+    'studeren terwijl anderen netflixen hits different',
+    'je brein groeit letterlijk van dit moment',
+    'dit is de move die het verschil maakt',
+    'jij houdt het hoofd koel en werkt gewoon door',
+    'geen excuses, gewoon doen — chapeau',
+    'future you is zo blij met je right now',
+    'dat ze dat thuis weten',
+    'jij bent echt dat meisje / guy / persoon',
+  ],
+  closers: ['🔥', '🚀', '⭐', '💪', '🧠', '🏆', '✨', '💅', '🌟', '⚡', '🔑', '📈'],
+};
+
 function getCompletionCompliment() {
-  return _COMPLIMENTS[Math.floor(Math.random() * _COMPLIMENTS.length)];
+  const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+  const opener = pick(_CG.openers);
+  const core   = pick(_CG.cores);
+  const closer = pick(_CG.closers);
+  // Kleine letter na opener-met-komma of gedachtestreepje, anders hoofdletter
+  const needsLower = opener.endsWith(',') || opener.endsWith('—');
+  const body = needsLower
+    ? core.charAt(0).toLowerCase() + core.slice(1)
+    : core.charAt(0).toUpperCase() + core.slice(1);
+  return `${opener} ${body} ${closer}`;
 }
 
 const XP_PER_SESSION = 10;

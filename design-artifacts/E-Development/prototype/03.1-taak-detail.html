@@ -15,9 +15,9 @@
 </head>
 <body class="bg-white min-h-screen flex flex-col font-karla">
 
-  <header class="bg-[#C6C9FF] flex items-center px-4 py-3">
-    <button onclick="history.back()" class="text-[#2C0094] hover:opacity-70 text-sm font-medium flex items-center gap-1 w-16">← Terug</button>
-    <span class="flex-1 flex justify-center"><img src="assets/logo-light.svg" alt="Flowz" class="h-6 w-auto"></span>
+  <header class="bg-white border-b border-gray-100 flex items-center px-4 py-3">
+    <button onclick="history.back()" class="text-gray-700 hover:opacity-70 text-sm font-medium flex items-center gap-1 w-16">← Terug</button>
+    <span class="flex-1 flex justify-center"><span class="font-bold text-xl text-gray-900">Flowz</span></span>
     <button id="taak-detail-bewerken-header-bewerk-knop"
             onclick="toggleEdit()"
             class="text-sm text-primary font-medium w-16 text-right">✏ Bewerken</button>
@@ -150,14 +150,14 @@
 
     <!-- Section: Subtaken -->
     <div id="subtask-section" class="mb-6">
-      <h3 class="text-xs font-bold text-[#2C0094] opacity-60 uppercase tracking-wide mb-3">Deeltaken</h3>
+      <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Deeltaken</h3>
       <div id="subtask-list" class="space-y-2"></div>
       <div id="no-subtasks" class="hidden text-xs text-gray-300 italic">Geen deeltaken toegevoegd</div>
     </div>
 
     <!-- Section: Benodigdheden -->
     <div id="materials-section" class="mb-6">
-      <h3 class="text-xs font-bold text-[#2C0094] opacity-60 uppercase tracking-wide mb-2">Benodigdheden</h3>
+      <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Benodigdheden</h3>
       <div id="materials-list" class="flex flex-wrap gap-2"></div>
       <div id="no-materials" class="hidden text-xs text-gray-300 italic">Geen benodigdheden toegevoegd</div>
     </div>
