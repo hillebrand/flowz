@@ -37,18 +37,6 @@
 
   <main class="flex-1 px-4 py-4 max-w-sm mx-auto w-full pb-24">
 
-    <!-- Urgentie Banner (conditioneel) -->
-    <div id="shortlist-vandaag-dagstatus-urgentie-banner"
-         class="hidden mb-3 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 flex items-start gap-2">
-      <span>⚠</span>
-      <span id="urgentie-banner-tekst"></span>
-    </div>
-
-    <!-- Capaciteitsdruk Banner (conditioneel) -->
-    <div id="shortlist-vandaag-dagstatus-capaciteitsdruk-banner"
-         class="hidden mb-3 bg-amber-50 border border-amber-200 text-amber-700 text-sm rounded-xl px-4 py-3 flex items-start gap-2">
-      <span id="capaciteitsdruk-tekst"></span>
-    </div>
 
     <!-- Vrije dag state -->
     <div id="blocked-state" class="hidden text-center py-16">
@@ -131,13 +119,6 @@
       badge.className = `text-xs px-3 py-1 rounded-full font-medium cursor-pointer hover:opacity-70 transition-opacity ${ec.badgeClass}`;
       badge.onclick = () => { window.location.href = '02.1-energie-check-in.html?change=1'; };
 
-      // Capacity warning
-      const capWarning = FS.getCapacityWarning(_data.tasks, _data.settings || {});
-      if (capWarning) {
-        document.getElementById('shortlist-vandaag-dagstatus-capaciteitsdruk-banner').classList.remove('hidden');
-        document.getElementById('capaciteitsdruk-tekst').textContent = 'Er zijn taken waarvoor je mogelijk te weinig tijd hebt.';
-      }
-
       // IDs of tasks with capacity pressure (for orange card highlight)
       _pressuredIds = new Set(FS.getCapacityPressuredTaskIds(_data.tasks, _data.settings || {}));
 
@@ -157,15 +138,7 @@
         return;
       }
 
-      // Urgency banner: one or more required tasks due today/tomorrow
-      const urgentTasks = _plan.required.filter(t =>
-        FS.getUrgency(t.deadline, Math.max(1, t.sessions_total - t.sessions_done)) === 'urgent'
-      );
-      if (urgentTasks.length > 0) {
-        document.getElementById('shortlist-vandaag-dagstatus-urgentie-banner').classList.remove('hidden');
-        document.getElementById('urgentie-banner-tekst').textContent =
-          'Er zijn taken die bijna af moeten zijn.';
-      }
+      // Urgency banner removed — colour-coded card borders communicate this
 
       renderPage();
     })();
@@ -229,7 +202,10 @@
         subjectBadgeColor = '#B1DAFF';
       }
 
-      const deadlineBadge = urgency === 'urgent' && !isOptional && !todayDone
+      const daysUntilDeadline = t.deadline
+        ? Math.ceil((new Date(t.deadline + 'T00:00:00') - (() => { const d = new Date(); d.setHours(0,0,0,0); return d; })()) / 86400000)
+        : null;
+      const deadlineBadge = daysUntilDeadline === 1 && !isOptional && !todayDone
         ? `<span class="text-xs font-medium text-[#FF7D7D]">deadline morgen!</span>`
         : '';
 
