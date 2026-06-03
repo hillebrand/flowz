@@ -142,7 +142,7 @@
         const d = new Date(monday);
         d.setDate(monday.getDate() + i);
         const ds      = FS.getDayKey(d);
-        const done    = sessionsLog.filter(s => s.date === ds).length;
+        const done    = new Set(sessionsLog.filter(s => s.date === ds).map(s => s.task_id)).size;
         const planned = dailyPlans[ds] ?? (ds < todayStr ? done : 0);
         return { label, ds, done, planned,
                  isToday: ds === todayStr, isFuture: ds > todayStr,
