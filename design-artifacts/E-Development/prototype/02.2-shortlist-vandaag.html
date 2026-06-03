@@ -312,7 +312,7 @@
         _data.sessions_log.push({ task_id: id, date: todayStr });
         if (!_data.study_days) _data.study_days = [];
         if (!_data.study_days.includes(todayStr)) _data.study_days.push(todayStr);
-        FS.showToast(FS.getCompletionCompliment() + ' +10 XP ⚡');
+        FS.showComplimentSheet(FS.getCompletionCompliment(), '+10 XP ⚡');
       } else {
         // Undo session — recurring: clear last_completed so it reappears
         task.sessions_done = Math.max(0, task.sessions_done - 1);
