@@ -560,30 +560,47 @@ function clearActiveSession() {
 
 
 
-function calcStreak(studyDays) {
-  return getStreakStatus(studyDays).streak;
+function calcStreak(completedDays, settings) {
+  return getStreakStatus(completedDays, settings).streak;
 }
 
-// Returns { streak, studiedToday } using local calendar days.
-// Grace period: if studied yesterday but not today, streak stays alive.
-function getStreakStatus(studyDays) {
-  if (!studyDays || studyDays.length === 0) return { streak: 0, studiedToday: false };
-  const unique = [...new Set(studyDays)].sort().reverse();
-  const todayStr     = getDayKey();
-  const yesterdayStr = getDayKey(new Date(Date.now() - 86400000));
-  const studiedToday = unique[0] === todayStr;
-  const startStr = studiedToday ? todayStr
-                 : unique[0] === yesterdayStr ? yesterdayStr
-                 : null;
-  if (!startStr) return { streak: 0, studiedToday: false };
+// Returns { streak, studiedToday }.
+// A day counts only when it is in completedDays (ALL required tasks done).
+// Blocked days (recurring weekdays or specific dates) are skipped — they
+// neither count nor break the streak.
+function getStreakStatus(completedDays, settings) {
+  const completed        = new Set(completedDays || []);
+  const blockedSpecific  = new Set(settings?.blocked_days?.specific  || []);
+  const recurringBlocked = new Set(settings?.blocked_days?.recurring || ['saturday', 'sunday']);
+
+  function isBlocked(dateStr) {
+    if (blockedSpecific.has(dateStr)) return true;
+    const dow = new Date(dateStr + 'T12:00:00')
+      .toLocaleDateString('en', { weekday: 'long' }).toLowerCase();
+    return recurringBlocked.has(dow);
+  }
+
+  const todayStr    = getDayKey();
+  const studiedToday = completed.has(todayStr);
+
+  // Grace period: if today not yet done, start counting from yesterday
+  let checkMs = studiedToday
+    ? new Date(`${todayStr}T12:00:00`).getTime()
+    : new Date(`${todayStr}T12:00:00`).getTime() - 86400000;
+
   let streak = 0;
-  // Parse as local noon to avoid any DST/rollover issues when subtracting days
-  let checkMs = new Date(`${startStr}T12:00:00`).getTime();
-  for (const day of unique) {
-    if (day === getDayKey(new Date(checkMs))) {
+  for (let i = 0; i < 365; i++) {
+    const dayStr = getDayKey(new Date(checkMs));
+    if (isBlocked(dayStr)) {
+      checkMs -= 86400000;
+      continue;
+    }
+    if (completed.has(dayStr)) {
       streak++;
       checkMs -= 86400000;
-    } else break;
+    } else {
+      break;
+    }
   }
   return { streak, studiedToday };
 }

@@ -247,9 +247,15 @@
       const doneCnt   = required.filter(t => FS.hasSessionToday(t.id, _data.sessions_log)).length;
       const remaining = required.length - doneCnt;
       const banner    = document.getElementById('motivation-banner');
+      const todayStr  = FS.getDayKey();
 
       if (remaining === 0) {
-        // All done — show celebration banner, fire confetti once
+        // All done — record in completed_days for streak
+        if (!_data.completed_days) _data.completed_days = [];
+        if (!_data.completed_days.includes(todayStr)) {
+          _data.completed_days.push(todayStr);
+          FS.saveData(_data);
+        }
         banner.className = 'mb-3 rounded-xl px-4 py-4 text-center bg-green-50 border border-green-200';
         banner.innerHTML = '<div class="text-2xl mb-1">🎉</div><div class="font-bold text-green-800 text-base">Hoera! Je bent klaar voor vandaag!</div><div class="text-sm text-green-600 mt-0.5">Nice — geniet van je vrije tijd!</div>';
         banner.classList.remove('hidden');
@@ -257,14 +263,19 @@
           _confettiFired = true;
           setTimeout(() => FS.showConfetti(), 300);
         }
-      } else if (remaining === 1) {
-        // One left — encourage!
-        banner.className = 'mb-3 rounded-xl px-4 py-3 text-sm font-medium text-center bg-indigo-50 border border-indigo-100 text-indigo-700';
-        banner.textContent = '💪 Nog maar 1 taak te gaan!';
-        banner.classList.remove('hidden');
-        _confettiFired = false;
       } else {
-        banner.classList.add('hidden');
+        // Not all done — remove today from completed_days if it was there
+        if (_data.completed_days?.includes(todayStr)) {
+          _data.completed_days = _data.completed_days.filter(d => d !== todayStr);
+          FS.saveData(_data);
+        }
+        if (remaining === 1) {
+          banner.className = 'mb-3 rounded-xl px-4 py-3 text-sm font-medium text-center bg-indigo-50 border border-indigo-100 text-indigo-700';
+          banner.textContent = '💪 Nog maar 1 taak te gaan!';
+          banner.classList.remove('hidden');
+        } else {
+          banner.classList.add('hidden');
+        }
         _confettiFired = false;
       }
     }

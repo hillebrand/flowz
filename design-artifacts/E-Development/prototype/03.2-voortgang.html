@@ -90,7 +90,7 @@
       const data = await FS.initData();
 
       // ── Streak ──────────────────────────────────────────────────────────────
-      const { streak, studiedToday } = FS.getStreakStatus(data.study_days || []);
+      const { streak, studiedToday } = FS.getStreakStatus(data.completed_days || [], data.settings || {});
       const emojiEl = document.getElementById('voortgangsinzicht-streak-vuuremoji');
       emojiEl.textContent = streak === 0 ? '💤' : studiedToday ? '🔥' : '🕯️';
       document.getElementById('voortgangsinzicht-streak-streak-teller').textContent =
