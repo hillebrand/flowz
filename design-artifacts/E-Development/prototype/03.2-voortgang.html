@@ -49,7 +49,7 @@
     <!-- Section: Weekoverzicht -->
     <div class="bg-white rounded-2xl px-5 py-5 shadow-sm border border-gray-100 mb-5">
       <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-4">Deze week</h3>
-      <div id="voortgangsinzicht-weekoverzicht-dag-checkmarks" class="flex justify-between gap-1"></div>
+      <div id="voortgangsinzicht-weekoverzicht-dag-checkmarks" class="flex justify-between items-end gap-1"></div>
     </div>
 
     <!-- Section: Totaalteller -->
@@ -120,30 +120,59 @@
       }
 
       // ── Week overview ────────────────────────────────────────────────────────
-      const todayStr = FS.getDayKey();
-      const days = ['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'];
-      const studyDays = new Set(data.study_days || []);
+      const todayStr     = FS.getDayKey();
+      const days         = ['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'];
+      const completedSet = new Set(data.completed_days || []);
+      const sessionsLog  = data.sessions_log || [];
+      const dailyPlans   = data.daily_plans  || {};
+      const blockedSpec  = new Set(data.settings?.blocked_days?.specific  || []);
+      const blockedRec   = new Set(data.settings?.blocked_days?.recurring || ['saturday', 'sunday']);
+
+      function isDayBlocked(ds) {
+        if (blockedSpec.has(ds)) return true;
+        const dow = new Date(ds + 'T12:00:00').toLocaleDateString('en', { weekday: 'long' }).toLowerCase();
+        return blockedRec.has(dow);
+      }
 
       const now = new Date();
       const monday = new Date(now);
       monday.setDate(now.getDate() - ((now.getDay() + 6) % 7));
 
-      const weekHtml = days.map((day, i) => {
+      const weekData = days.map((label, i) => {
         const d = new Date(monday);
         d.setDate(monday.getDate() + i);
-        const dateStr = FS.getDayKey(d);
-        const isToday  = dateStr === todayStr;
-        const studied  = studyDays.has(dateStr);
-        const isFuture = dateStr > todayStr;
+        const ds      = FS.getDayKey(d);
+        const done    = sessionsLog.filter(s => s.date === ds).length;
+        const planned = dailyPlans[ds] ?? (ds < todayStr ? done : 0);
+        return { label, ds, done, planned,
+                 isToday: ds === todayStr, isFuture: ds > todayStr,
+                 isBlocked: isDayBlocked(ds) };
+      });
+
+      const BAR_MAX  = 72;
+      const BAR_MIN  = 14;
+      const maxTasks = Math.max(1, ...weekData.map(d => d.planned));
+
+      const weekHtml = weekData.map(({ label, ds, done, planned, isToday, isFuture, isBlocked }) => {
+        const barH   = planned === 0
+          ? BAR_MIN
+          : Math.round(BAR_MIN + (BAR_MAX - BAR_MIN) * planned / maxTasks);
+        const fillPct = planned === 0 ? 0 : Math.round(Math.min(1, done / planned) * 100);
+        const allDone = completedSet.has(ds);
+        const fillColor = allDone ? 'bg-primary' : 'bg-primary/60';
+        const dimmed    = (isFuture || isBlocked) ? 'opacity-40' : '';
+        const dot       = isToday
+          ? '<div class="w-1.5 h-1.5 rounded-full bg-primary mt-0.5"></div>'
+          : '<div class="w-1.5 h-1.5 mt-0.5"></div>';
         return `
-          <div class="flex flex-col items-center gap-1.5">
-            <div class="text-xs ${isToday ? 'font-bold text-primary' : 'text-gray-400'}">${day}</div>
-            <div class="w-8 h-8 rounded-full flex items-center justify-center text-base
-                        ${studied ? 'bg-primary text-white' : isFuture ? 'bg-gray-50 border border-dashed border-gray-200' : 'bg-gray-100 text-gray-300'}">
-              ${studied ? '✓' : isFuture ? '' : '·'}
+          <div class="flex flex-col items-center gap-1">
+            <div class="text-[11px] leading-none ${isToday ? 'font-bold text-primary' : 'text-gray-400'}">${label}</div>
+            <div class="relative w-7 rounded-md overflow-hidden bg-gray-100 ${dimmed}" style="height:${barH}px">
+              <div class="absolute bottom-0 left-0 right-0 ${fillColor} transition-all duration-500"
+                   style="height:${fillPct}%"></div>
             </div>
-          </div>
-        `;
+            ${dot}
+          </div>`;
       }).join('');
       document.getElementById('voortgangsinzicht-weekoverzicht-dag-checkmarks').innerHTML = weekHtml;
 

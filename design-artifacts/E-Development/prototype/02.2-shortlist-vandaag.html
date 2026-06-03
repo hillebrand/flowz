@@ -128,6 +128,12 @@
            || FS.buildDailyPlan(_data.tasks, _data.settings || {}, energy);
       FS.saveTodayPlan(_plan);
 
+      // Persist planned count for the week-overview bars on the progress page
+      if (!_data.daily_plans) _data.daily_plans = {};
+      const _todayKey = FS.getDayKey();
+      _data.daily_plans[_todayKey] = _plan.required.length;
+      FS.saveData(_data);
+
       if (!_plan.todayAvailable) {
         document.getElementById('blocked-state').classList.remove('hidden');
         return;
