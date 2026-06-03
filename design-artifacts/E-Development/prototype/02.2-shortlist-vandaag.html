@@ -128,10 +128,14 @@
            || FS.buildDailyPlan(_data.tasks, _data.settings || {}, energy);
       FS.saveTodayPlan(_plan);
 
-      // Persist planned count for the week-overview bars on the progress page
+      // Persist planned count for the week-overview bars on the progress page.
+      // Use the union of plan IDs + tasks already done today so the count is
+      // correct even when buildDailyPlan ran after some tasks were marked done.
       if (!_data.daily_plans) _data.daily_plans = {};
       const _todayKey = FS.getDayKey();
-      _data.daily_plans[_todayKey] = _plan.required.length;
+      const _doneToday = new Set((_data.sessions_log || []).filter(s => s.date === _todayKey).map(s => s.task_id));
+      const _planIds   = new Set(_plan.required.map(t => t.id));
+      _data.daily_plans[_todayKey] = new Set([..._planIds, ..._doneToday]).size;
       FS.saveData(_data);
 
       if (!_plan.todayAvailable) {

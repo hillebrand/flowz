@@ -128,6 +128,11 @@
       const blockedSpec  = new Set(data.settings?.blocked_days?.specific  || []);
       const blockedRec   = new Set(data.settings?.blocked_days?.recurring || ['saturday', 'sunday']);
 
+      // Read active plan for today from localStorage to recover original task list
+      const todayPlan = (() => {
+        try { const p = JSON.parse(localStorage.getItem('fs_daily_plan') || 'null'); return p?.date === todayStr ? p : null; } catch { return null; }
+      })();
+
       function isDayBlocked(ds) {
         if (blockedSpec.has(ds)) return true;
         const dow = new Date(ds + 'T12:00:00').toLocaleDateString('en', { weekday: 'long' }).toLowerCase();
@@ -142,8 +147,18 @@
         const d = new Date(monday);
         d.setDate(monday.getDate() + i);
         const ds      = FS.getDayKey(d);
-        const done    = new Set(sessionsLog.filter(s => s.date === ds).map(s => s.task_id)).size;
-        const planned = dailyPlans[ds] ?? (ds < todayStr ? done : 0);
+        const doneIds = new Set(sessionsLog.filter(s => s.date === ds).map(s => s.task_id));
+        const done    = doneIds.size;
+
+        let planned;
+        if (ds === todayStr && todayPlan) {
+          // Union of current plan IDs + already-done IDs recovers original plan even if
+          // buildDailyPlan was called after some tasks were already marked done.
+          planned = new Set([...(todayPlan.requiredIds || []), ...doneIds]).size;
+        } else {
+          planned = dailyPlans[ds] ?? (ds < todayStr ? done : 0);
+        }
+
         return { label, ds, done, planned,
                  isToday: ds === todayStr, isFuture: ds > todayStr,
                  isBlocked: isDayBlocked(ds) };
