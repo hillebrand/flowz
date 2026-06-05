@@ -210,6 +210,20 @@
     function loadTask() {
       if (queueIndex >= queue.length) {
         FS.markSetupDone();
+
+        // If any of the newly enriched tasks is due today or tomorrow, the cached
+        // daily plan doesn't include them yet — invalidate it so the shortlist
+        // rebuilds with these urgent tasks included.
+        const data = FS.loadData();
+        const today    = FS.getDayKey();
+        const tomorrowDate = new Date(); tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+        const tomorrow = FS.getDayKey(tomorrowDate);
+        const hasUrgent = queue.some(id => {
+          const t = data.tasks.find(t => t.id === id);
+          return t && !t.recurring && (t.deadline === today || t.deadline === tomorrow);
+        });
+        if (hasUrgent) localStorage.removeItem('fs_daily_plan');
+
         // Go to shortlist if daily routine, otherwise overview
         window.location.href = FS.getTodayEnergy() ? '02.2-shortlist-vandaag.html' : '01.5-takenoverzicht.html';
         return;
@@ -449,6 +463,17 @@
         data.tasks = data.tasks.filter(t => !emptyIds.includes(t.id));
         FS.saveData(data);
       }
+
+      // Invalidate today's plan if any already-enriched task is due today or tomorrow
+      const today    = FS.getDayKey();
+      const tomorrowDate = new Date(); tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+      const tomorrow = FS.getDayKey(tomorrowDate);
+      const enrichedSoFar = queue.slice(0, queueIndex);
+      const hasUrgent = enrichedSoFar.some(id => {
+        const t = data.tasks.find(t => t.id === id);
+        return t && !t.recurring && (t.deadline === today || t.deadline === tomorrow);
+      });
+      if (hasUrgent) localStorage.removeItem('fs_daily_plan');
       window.location.href = FS.getTodayEnergy() ? '02.2-shortlist-vandaag.html' : '01.5-takenoverzicht.html';
     }
   </script>
