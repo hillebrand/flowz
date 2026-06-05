@@ -6,6 +6,53 @@ const ENERGY_KEY = 'flowz_energy_today';
 const SETUP_KEY = 'flowz_setup_done';
 const DATA_VERSION = 3; // bump to reset stored data on breaking changes
 
+// ── Themes ────────────────────────────────────────────────────────────────────
+
+const THEMES = {
+  purple: { name: 'Paars',  primary: '#6366f1', dark: '#4f46e5', rgb: '99 102 241'  },
+  blue:   { name: 'Blauw',  primary: '#3b82f6', dark: '#2563eb', rgb: '59 130 246'  },
+  green:  { name: 'Groen',  primary: '#10b981', dark: '#059669', rgb: '16 185 129'  },
+  rose:   { name: 'Roze',   primary: '#f43f5e', dark: '#e11d48', rgb: '244 63 94'   },
+  amber:  { name: 'Oranje', primary: '#f59e0b', dark: '#d97706', rgb: '245 158 11'  },
+};
+
+function applyTheme(key) {
+  const t = THEMES[key] || THEMES.purple;
+  const { primary, dark, rgb } = t;
+  const existing = document.getElementById('flowz-theme-overrides');
+  if (existing) existing.remove();
+  const style = document.createElement('style');
+  style.id = 'flowz-theme-overrides';
+  style.textContent = `
+    .bg-primary                        { background-color: ${primary} !important; }
+    .bg-primary\\/10                   { background-color: rgb(${rgb} / 0.1) !important; }
+    .bg-primary\\/60                   { background-color: rgb(${rgb} / 0.6) !important; }
+    .text-primary                      { color: ${primary} !important; }
+    .border-primary                    { border-color: ${primary} !important; }
+    .border-primary\\/30               { border-color: rgb(${rgb} / 0.3) !important; }
+    .border-primary\\/40               { border-color: rgb(${rgb} / 0.4) !important; }
+    .hover\\:bg-primary-dark:hover     { background-color: ${dark} !important; }
+    .focus\\:border-primary:focus      { border-color: ${primary} !important; }
+    .focus\\:ring-primary\\/30:focus   { --tw-ring-color: rgb(${rgb} / 0.3) !important; }
+    .peer:checked ~ .peer-checked\\:bg-primary { background-color: ${primary} !important; }
+    .shadow-indigo-200                 { --tw-shadow-color: rgb(${rgb} / 0.35) !important; }
+    .fs-xp-primary                    { color: ${primary} !important; }
+  `;
+  document.head.appendChild(style);
+}
+
+function loadAndApplyTheme() {
+  try {
+    const raw = localStorage.getItem(APP_KEY);
+    const theme = raw ? (JSON.parse(raw).settings?.theme || 'purple') : 'purple';
+    applyTheme(theme);
+  } catch { applyTheme('purple'); }
+}
+
+// Apply immediately (before render) and after DOMContentLoaded (after Tailwind processes).
+loadAndApplyTheme();
+document.addEventListener('DOMContentLoaded', loadAndApplyTheme);
+
 // ── Auth ─────────────────────────────────────────────────────────────────────
 
 const WORKER_URL = 'https://flowstate-proxy.flowstate-evelien.workers.dev';
@@ -823,7 +870,7 @@ function showComplimentSheet(compliment, xp) {
     <div style="width:40px;height:4px;background:#e5e7eb;border-radius:2px;margin:0 auto 20px"></div>
     <div class="fs-mime">${mime}</div>
     <p style="font-size:20px;font-weight:700;color:#111827;margin:16px 0 6px;line-height:1.3">${compliment}</p>
-    ${xp ? `<p class="fs-xp" style="font-size:15px;font-weight:600;color:#6366f1;margin-bottom:24px">${xp}</p>` : '<div style="height:24px"></div>'}
+    ${xp ? `<p class="fs-xp fs-xp-primary" style="font-size:15px;font-weight:600;margin-bottom:24px">${xp}</p>` : '<div style="height:24px"></div>'}
     <button id="fs-compliment-ok"
       style="width:100%;background:#111827;color:#fff;font-weight:700;font-size:16px;padding:16px;border:none;border-radius:16px;cursor:pointer;font-family:inherit">
       Nice, door! 🔥
@@ -886,4 +933,5 @@ window.FS = {
   navigate,
   isLoggedIn, getAuthToken, setAuthToken, clearAuthToken, pushCloudData, WORKER_URL,
   applySessionDone, isRecurringDueToday, getRecurringLabel,
+  THEMES, applyTheme, loadAndApplyTheme,
 };

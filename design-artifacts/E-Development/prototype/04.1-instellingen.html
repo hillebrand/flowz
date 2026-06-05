@@ -10,7 +10,7 @@
   <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5', 'flowz-purple': '#2C0094', 'flowz-nav': '#C6C9FF' }, fontFamily: { karla: ['Karla', 'sans-serif'] } } } }</script>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <script src="shared/app.js?v=16"></script>
+  <script src="shared/app.js?v=17"></script>
   <script src="shared/nav.js"></script>
 </head>
 <body class="bg-gray-50 min-h-screen flex flex-col font-karla">
@@ -103,6 +103,39 @@
       </div>
     </div>
 
+    <!-- Section: Uiterlijk -->
+    <div class="bg-white rounded-2xl px-5 py-5 shadow-sm border border-gray-100">
+      <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-4">Uiterlijk</h3>
+      <p class="text-sm text-gray-500 mb-3">Accentkleur</p>
+      <div id="theme-swatches" class="flex gap-3">
+        <button onclick="selectTheme('purple')" data-theme="purple"
+                class="swatch-btn w-9 h-9 rounded-full flex items-center justify-center transition-transform hover:scale-110 active:scale-95"
+                style="background:#6366f1" title="Paars">
+          <span class="swatch-check text-white text-sm hidden">✓</span>
+        </button>
+        <button onclick="selectTheme('blue')" data-theme="blue"
+                class="swatch-btn w-9 h-9 rounded-full flex items-center justify-center transition-transform hover:scale-110 active:scale-95"
+                style="background:#3b82f6" title="Blauw">
+          <span class="swatch-check text-white text-sm hidden">✓</span>
+        </button>
+        <button onclick="selectTheme('green')" data-theme="green"
+                class="swatch-btn w-9 h-9 rounded-full flex items-center justify-center transition-transform hover:scale-110 active:scale-95"
+                style="background:#10b981" title="Groen">
+          <span class="swatch-check text-white text-sm hidden">✓</span>
+        </button>
+        <button onclick="selectTheme('rose')" data-theme="rose"
+                class="swatch-btn w-9 h-9 rounded-full flex items-center justify-center transition-transform hover:scale-110 active:scale-95"
+                style="background:#f43f5e" title="Roze">
+          <span class="swatch-check text-white text-sm hidden">✓</span>
+        </button>
+        <button onclick="selectTheme('amber')" data-theme="amber"
+                class="swatch-btn w-9 h-9 rounded-full flex items-center justify-center transition-transform hover:scale-110 active:scale-95"
+                style="background:#f59e0b" title="Oranje">
+          <span class="swatch-check text-white text-sm hidden">✓</span>
+        </button>
+      </div>
+    </div>
+
     <!-- Save button -->
     <button id="instellingen-acties-opslaan-knop"
             onclick="saveSettings()"
@@ -182,6 +215,30 @@
   <script>
     injectNav('settings');
 
+    let _currentTheme = 'purple';
+
+    function markActiveSwatch(key) {
+      document.querySelectorAll('#theme-swatches .swatch-btn').forEach(btn => {
+        const check = btn.querySelector('.swatch-check');
+        const active = btn.dataset.theme === key;
+        btn.style.outline = active ? '3px solid ' + FS.THEMES[key].primary : 'none';
+        btn.style.outlineOffset = '2px';
+        check.classList.toggle('hidden', !active);
+      });
+    }
+
+    function selectTheme(key) {
+      _currentTheme = key;
+      FS.applyTheme(key);
+      markActiveSwatch(key);
+      // Persist immediately — no need to wait for full save
+      const data = FS.loadData();
+      if (data) {
+        data.settings.theme = key;
+        FS.saveData(data);
+      }
+    }
+
     (async function() {
       const data = await FS.initData();
       const s = data.settings;
@@ -198,6 +255,10 @@
       // Pauzetijd
       document.getElementById('instellingen-studeersessie-pauzetijd-dropdown').value =
         String(s.break_length_min || 10);
+
+      // Thema
+      _currentTheme = s.theme || 'purple';
+      markActiveSwatch(_currentTheme);
 
       // Herinneringen
       const toggle = document.getElementById('instellingen-herinneringen-herinnering-toggle');
@@ -230,6 +291,7 @@
       data.settings.break_length_min = parseInt(document.getElementById('instellingen-studeersessie-pauzetijd-dropdown').value);
       data.settings.reminder_enabled = document.getElementById('instellingen-herinneringen-herinnering-toggle').checked;
       data.settings.reminder_time = document.getElementById('instellingen-herinneringen-tijdpicker').value;
+      data.settings.theme = _currentTheme;
       data._updated_at = Date.now();
       localStorage.setItem('flowz_data', JSON.stringify(data));
       // await the cloud push so data is safely stored before the toast disappears
