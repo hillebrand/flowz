@@ -1,12 +1,14 @@
 // Flowz Service Worker — offline-first caching
 
-const CACHE_NAME = 'flowz-v15';
+const CACHE_NAME = 'flowz-v16';
 
 const PRECACHE = [
   '/',
   'index.html',
   '00.1-login.html',
   '00.2-registreren.html',
+  '00.3-wachtwoord-vergeten.html',
+  '00.4-wachtwoord-resetten.html',
   '01.1-welkomst.html',
   '01.2-magister-sync.html',
   '01.3-import-review.html',
@@ -22,6 +24,7 @@ const PRECACHE = [
   '03.6-pauzetimer.html',
   '04.1-instellingen.html',
   '04.2-beschikbaarheid.html',
+  '05.1-afgeronde-taken.html',
   'shared/app.js',
   'shared/nav.js',
   'manifest.json',
@@ -40,14 +43,7 @@ self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(keys => {
       const toDelete = keys.filter(k => k !== CACHE_NAME);
-      return Promise.all(toDelete.map(k => caches.delete(k))).then(() => {
-        if (toDelete.length > 0) {
-          // Previous version found — reload all open tabs so they get fresh cache
-          return self.clients.matchAll({ type: 'window' }).then(clients => {
-            clients.forEach(client => client.navigate(client.url));
-          });
-        }
-      });
+      return Promise.all(toDelete.map(k => caches.delete(k)));
     })
   );
   self.clients.claim();
