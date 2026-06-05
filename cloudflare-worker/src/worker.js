@@ -18,17 +18,27 @@
  *   FLOWSTATE_KV — stores user accounts, sessions, and data blobs
  */
 
-const ALLOWED_ORIGIN = 'https://flowstate-app.surge.sh';
+const ALLOWED_ORIGINS = new Set([
+  'https://flowstate-app.surge.sh',
+  'https://flowz.pages.dev',
+]);
 
-const CORS = {
-  'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
-  'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-  'Access-Control-Max-Age': '86400',
-};
+function corsHeaders(request) {
+  const origin = request.headers.get('Origin') || '';
+  const allowed = ALLOWED_ORIGINS.has(origin) || origin.endsWith('.flowz.pages.dev')
+    ? origin
+    : 'https://flowz.pages.dev';
+  return {
+    'Access-Control-Allow-Origin':  allowed,
+    'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    'Access-Control-Max-Age':       '86400',
+  };
+}
 
 export default {
   async fetch(request, env) {
+    const CORS = corsHeaders(request);
     if (request.method === 'OPTIONS') return new Response(null, { headers: CORS });
 
     const url = new URL(request.url);
