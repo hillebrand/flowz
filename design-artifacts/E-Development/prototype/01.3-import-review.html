@@ -10,7 +10,7 @@
   <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5', 'flowz-purple': '#2C0094', 'flowz-nav': '#C6C9FF' }, fontFamily: { karla: ['Karla', 'sans-serif'] } } } }</script>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <script src="shared/app.js?v=15"></script>
+  <script src="shared/app.js?v=16"></script>
 </head>
 <body class="bg-white min-h-screen flex flex-col font-karla">
 
@@ -215,7 +215,7 @@
               ${item.type && item.type !== 'Huiswerk' ? `<span class="text-xs bg-indigo-50 text-indigo-600 px-1.5 py-0.5 rounded font-medium">${esc(item.type)}</span>` : ''}
             </div>
             <div class="text-xs text-gray-400 mt-0.5">
-              ${item.subject ? `<span class="font-medium text-gray-500">${esc(item.subject)}</span> · ` : ''}Inleveren ${FS.formatDeadline(item.deadline)}
+              Inleveren ${FS.formatDeadline(item.deadline)}
             </div>
             ${item.description ? `<div class="text-xs text-gray-400 mt-1 italic truncate">${esc(item.description).slice(0, 80)}${item.description.length > 80 ? '…' : ''}</div>` : ''}
           </div>
@@ -244,7 +244,7 @@
       const newTasks      = selectedItems.map(i => ({
         id:               'mg_' + Date.now() + '_' + i.id,
         title:            i.title,
-        subject:          i.subject,
+        subject:          i.subject,  // bewaard voor Magister-koppeling, niet getoond
         type:             i.type || null,
         description:      i.description || '',
         deadline:         i.deadline,

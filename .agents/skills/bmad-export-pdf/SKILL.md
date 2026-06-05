@@ -1,3 +1,14 @@
+---
+name: bmad-export-pdf
+description: Converts a BMAD-generated markdown document to a branded PDF report with cover page, table of contents, and company styling. Use when exporting, generating, or creating a PDF from a markdown or BMAD document. Requires branding.json (run bmad-export-setup first). Invoke with: bmad-export-pdf <file.md>
+license: MIT
+version: "1.3.0"
+tags:
+  - bmad
+  - pdf
+  - export
+  - branding
+---
 # bmad-export-pdf
 
 ## Role

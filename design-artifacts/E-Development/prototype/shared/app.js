@@ -82,7 +82,7 @@ document.addEventListener('visibilitychange', async () => {
 
 // ── Load / Save ──────────────────────────────────────────────────────────────
 
-const DEMO_DATA = {"tasks":[{"id":"t1","title":"Essay Engels","subject":"English","description":"Schrijf een betoog van minimaal 500 woorden over klimaatverandering. Gebruik minstens 3 bronnen en voeg een bronnenlijst toe.","deadline":"2026-06-02","sessions_total":3,"sessions_done":1,"complexity":"high","priority":"high","subtasks":[{"id":"s1","title":"Bronnen zoeken","done":true},{"id":"s2","title":"Opzet schrijven","done":false},{"id":"s3","title":"Essay schrijven","done":false},{"id":"s4","title":"Nalezen","done":false}],"materials":["leerboek","aantekeningen"],"status":"in_progress","source":"magister","magister_id":"mg_001","created_at":"2026-05-23"},{"id":"t2","title":"Wiskundeopgaven hoofdstuk 5","subject":"Math","description":"Opgaven 5.1 t/m 5.4 — vectoren en matrices. Let op: toon altijd de tussenberekening.","deadline":"2026-06-04","sessions_total":2,"sessions_done":0,"complexity":"medium","priority":"normal","subtasks":[{"id":"s8","title":"Paragraaf 5.1 en 5.2","done":false},{"id":"s9","title":"Paragraaf 5.3 en 5.4","done":false}],"materials":["rekenmachine","schrift"],"status":"pending","source":"magister","magister_id":"mg_002","created_at":"2026-05-23"},{"id":"t3","title":"Samenvatting Geschiedenis hfst 8","subject":"History","description":"Samenvatting van hoofdstuk 8: De Tweede Wereldoorlog. Maximaal 2 A4. Gebruik de koppen uit het boek als structuur.","deadline":"2026-06-06","sessions_total":1,"sessions_done":0,"complexity":"low","priority":"normal","subtasks":[],"materials":["leerboek"],"status":"pending","source":"magister","magister_id":"mg_003","created_at":"2026-05-23"},{"id":"t4","title":"Biologie werkstuk — ecosystemen","subject":"Biology","description":"Kies een ecosysteem naar keuze en beschrijf voedselketens, producenten, consumenten en decomposers. Minimaal 4 pagina's inclusief afbeeldingen.","deadline":"2026-06-13","sessions_total":4,"sessions_done":0,"complexity":"high","priority":"low","subtasks":[{"id":"s5","title":"Ecosysteem kiezen","done":false},{"id":"s6","title":"Onderzoek doen","done":false},{"id":"s7","title":"Verslag schrijven","done":false}],"materials":["leerboek"],"status":"pending","source":"manual","magister_id":null,"created_at":"2026-05-23"},{"id":"t5","title":"Toets Scheikunde — hoofdstuk 6","subject":"Chemistry","description":"Leer atoombouw, moleculen en chemische bindingen. Maak ook de oefentoets achter in het boek.","deadline":"2026-05-30","sessions_total":2,"sessions_done":0,"complexity":"high","priority":"high","subtasks":[{"id":"s10","title":"Atoombouw herhalen","done":false},{"id":"s11","title":"Oefentoets maken","done":false}],"materials":["leerboek","aantekeningen","woordenlijst"],"status":"pending","source":"magister","magister_id":"mg_005","created_at":"2026-05-24"},{"id":"t6","title":"Boekverslag Nederlands","subject":"Dutch","description":"Boekverslag over 'De aanslag' van Harry Mulisch. Gebruik het format van de docent (zie Magister).","deadline":"2026-06-19","sessions_total":3,"sessions_done":0,"complexity":"medium","priority":"normal","subtasks":[{"id":"s12","title":"Boek uitlezen","done":false},{"id":"s13","title":"Aantekeningen verwerken","done":false},{"id":"s14","title":"Verslag schrijven","done":false}],"materials":["boek 'De aanslag'"],"status":"pending","source":"magister","magister_id":"mg_006","created_at":"2026-05-24"}],"settings":{"shortlist_size":5,"session_length_min":45,"break_length_min":10,"reminder_enabled":true,"reminder_time":"18:00","magister_connected":false,"magister_email":null,"blocked_days":{"recurring":["saturday","sunday"],"specific":[]}},"sessions_log":[{"task_id":"t1","date":"2026-05-22"}],"study_days":["2026-05-19","2026-05-20","2026-05-21","2026-05-22","2026-05-23"]};
+const DEMO_DATA = {"tasks":[{"id":"t1","task_type":"Opdracht","title":"Essay Engels","subject":"English","description":"Schrijf een betoog van minimaal 500 woorden over klimaatverandering. Gebruik minstens 3 bronnen en voeg een bronnenlijst toe.","deadline":"2026-06-02","sessions_total":3,"sessions_done":1,"complexity":"high","priority":"high","subtasks":[{"id":"s1","title":"Bronnen zoeken","done":true},{"id":"s2","title":"Opzet schrijven","done":false},{"id":"s3","title":"Essay schrijven","done":false},{"id":"s4","title":"Nalezen","done":false}],"materials":["leerboek","aantekeningen"],"status":"in_progress","source":"magister","magister_id":"mg_001","created_at":"2026-05-23"},{"id":"t2","task_type":"Huiswerk","title":"Wiskundeopgaven hoofdstuk 5","subject":"Math","description":"Opgaven 5.1 t/m 5.4 — vectoren en matrices. Let op: toon altijd de tussenberekening.","deadline":"2026-06-04","sessions_total":2,"sessions_done":0,"complexity":"medium","priority":"normal","subtasks":[{"id":"s8","title":"Paragraaf 5.1 en 5.2","done":false},{"id":"s9","title":"Paragraaf 5.3 en 5.4","done":false}],"materials":["rekenmachine","schrift"],"status":"pending","source":"magister","magister_id":"mg_002","created_at":"2026-05-23"},{"id":"t3","task_type":"Opdracht","title":"Samenvatting Geschiedenis hfst 8","subject":"History","description":"Samenvatting van hoofdstuk 8: De Tweede Wereldoorlog. Maximaal 2 A4. Gebruik de koppen uit het boek als structuur.","deadline":"2026-06-06","sessions_total":1,"sessions_done":0,"complexity":"low","priority":"normal","subtasks":[],"materials":["leerboek"],"status":"pending","source":"magister","magister_id":"mg_003","created_at":"2026-05-23"},{"id":"t4","task_type":"Werkstuk","title":"Biologie werkstuk — ecosystemen","subject":"Biology","description":"Kies een ecosysteem naar keuze en beschrijf voedselketens, producenten, consumenten en decomposers. Minimaal 4 pagina's inclusief afbeeldingen.","deadline":"2026-06-13","sessions_total":4,"sessions_done":0,"complexity":"high","priority":"low","subtasks":[{"id":"s5","title":"Ecosysteem kiezen","done":false},{"id":"s6","title":"Onderzoek doen","done":false},{"id":"s7","title":"Verslag schrijven","done":false}],"materials":["leerboek"],"status":"pending","source":"manual","magister_id":null,"created_at":"2026-05-23"},{"id":"t5","task_type":"Proefwerk","title":"Toets Scheikunde — hoofdstuk 6","subject":"Chemistry","description":"Leer atoombouw, moleculen en chemische bindingen. Maak ook de oefentoets achter in het boek.","deadline":"2026-05-30","sessions_total":2,"sessions_done":0,"complexity":"high","priority":"high","subtasks":[{"id":"s10","title":"Atoombouw herhalen","done":false},{"id":"s11","title":"Oefentoets maken","done":false}],"materials":["leerboek","aantekeningen","woordenlijst"],"status":"pending","source":"magister","magister_id":"mg_005","created_at":"2026-05-24"},{"id":"t6","task_type":"Opdracht","title":"Boekverslag Nederlands","subject":"Dutch","description":"Boekverslag over 'De aanslag' van Harry Mulisch. Gebruik het format van de docent (zie Magister).","deadline":"2026-06-19","sessions_total":3,"sessions_done":0,"complexity":"medium","priority":"normal","subtasks":[{"id":"s12","title":"Boek uitlezen","done":false},{"id":"s13","title":"Aantekeningen verwerken","done":false},{"id":"s14","title":"Verslag schrijven","done":false}],"materials":["boek 'De aanslag'"],"status":"pending","source":"magister","magister_id":"mg_006","created_at":"2026-05-24"}],"settings":{"shortlist_size":5,"session_length_min":45,"break_length_min":10,"reminder_enabled":true,"reminder_time":"18:00","magister_connected":false,"magister_email":null,"blocked_days":{"recurring":["saturday","sunday"],"specific":[]}},"sessions_log":[{"task_id":"t1","date":"2026-05-22"}],"study_days":["2026-05-19","2026-05-20","2026-05-21","2026-05-22","2026-05-23"]};
 
 function loadData() {
   const raw = localStorage.getItem(APP_KEY);
@@ -204,10 +204,13 @@ function taskTypeBadge(type) {
   if (!type || type === 'Huiswerk') return '';
   const styles = {
     'Proefwerk': 'bg-red-50 text-red-600',
+    'S.O.':      'bg-red-50 text-red-500',
     'Mondeling': 'bg-purple-50 text-purple-600',
     'Opdracht':  'bg-indigo-50 text-indigo-600',
+    'Werkstuk':  'bg-teal-50 text-teal-600',
+    'Verslag':   'bg-teal-50 text-teal-600',
   };
-  const cls = styles[type] || 'bg-indigo-50 text-indigo-600';
+  const cls = styles[type] || 'bg-gray-100 text-gray-600';
   return `<span class="text-xs ${cls} px-1.5 py-0.5 rounded font-medium flex-shrink-0">${type}</span>`;
 }
 
@@ -223,7 +226,7 @@ function taskTypeBadge(type) {
 //
 // Self-correcting: as sessions are logged, pressure updates daily.
 
-function buildDailyPlan(tasks, settings, energy) {
+function buildDailyPlan(tasks, settings, energy, time) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const todayStr = today.toISOString().slice(0, 10);
@@ -286,20 +289,27 @@ function buildDailyPlan(tasks, settings, energy) {
   const baseTarget  = Math.ceil(totalRemaining / totalDays);
   const dailyTarget = Math.max(1, forcedCount, baseTarget);
 
-  const required   = [...recurringToday, ...scored.slice(0, dailyTarget)];
-  const candidates = scored.slice(dailyTarget);
+  // Time controls how many tasks are shown
+  const timeCap = time === 'low'  ? Math.max(forcedCount, Math.min(dailyTarget, 2))
+                : time === 'high' ? dailyTarget + 1
+                : dailyTarget; // 'normal' or unset
 
-  // Optional session: skip for low energy unless task is simple
+  const required   = [...recurringToday, ...scored.slice(0, timeCap)];
+  const candidates = scored.slice(timeCap);
+
+  // Energy controls which optional task is suggested (complexity preference)
   let optional = null;
   if (candidates.length > 0) {
     if (energy === 'low') {
       optional = candidates.find(t => (t.complexity || 'medium') === 'low') || null;
+    } else if (energy === 'high') {
+      optional = candidates.find(t => (t.complexity || 'medium') === 'high') || candidates[0];
     } else {
       optional = candidates[0];
     }
   }
 
-  return { required, optional, dailyTarget, todayAvailable };
+  return { required, optional, dailyTarget: timeCap, todayAvailable };
 }
 
 // Returns local calendar date as "YYYY-MM-DD" — use this everywhere instead of toISOString()
@@ -408,19 +418,33 @@ function markSetupDone() {
   localStorage.setItem(SETUP_KEY, 'true');
 }
 
-function getTodayEnergy() {
+function getTodayCheckin() {
   const stored = localStorage.getItem(ENERGY_KEY);
   if (!stored) return null;
-  const { energy, date } = JSON.parse(stored);
-  if (date === new Date().toISOString().slice(0, 10)) return energy;
-  return null; // stale — new day
+  const parsed = JSON.parse(stored);
+  const today = new Date().toISOString().slice(0, 10);
+  if (parsed.date !== today) return null;
+  return { energy: parsed.energy || null, time: parsed.time || null };
+}
+
+function getTodayEnergy() {
+  return getTodayCheckin()?.energy || null;
+}
+
+function getTodayTime() {
+  return getTodayCheckin()?.time || null;
+}
+
+function setTodayCheckin(energy, time) {
+  localStorage.setItem(ENERGY_KEY, JSON.stringify({
+    energy, time,
+    date: new Date().toISOString().slice(0, 10),
+  }));
 }
 
 function setTodayEnergy(energy) {
-  localStorage.setItem(ENERGY_KEY, JSON.stringify({
-    energy,
-    date: new Date().toISOString().slice(0, 10)
-  }));
+  const existing = getTodayCheckin();
+  setTodayCheckin(energy, existing?.time || null);
 }
 
 // ── Capacity Warning ─────────────────────────────────────────────────────────
@@ -620,48 +644,19 @@ function getStreakMessage(streak, studiedToday) {
   return `${streak} dagen! Certified studeerheld, periodt 👑🔥`;
 }
 
-// Compliment generator — combinatorisch zodat elke sessie een unieke zin krijgt.
-// ~14 openers × ~18 cores × ~12 slotters = 3.000+ unieke combinaties.
-const _CG = {
-  openers: [
-    'Slay!', 'No cap,', 'Bestie,', 'W move!', 'Fr fr,', 'Lowkey,',
-    'Periodt!', 'You ate!!', 'Not me being proud —', 'Echt niet gelogen,',
-    'Aye!', 'Respectfully,', 'Dat is de move —', 'Cijfer of niet,',
-  ],
-  cores: [
-    'je hersenen bedanken je straks',
-    'je bent écht aan het groeien',
-    'elke sessie telt en jij laat dat zien',
-    'consistent blijven is de echte skill en jij hebt hem',
-    'jij pakt dat ritme écht',
-    'dit is precies die vibe',
-    'jij gaat ver met deze mindset',
-    'je bent al beter dan gisteren',
-    'dit is die main character energy',
-    'deadlines krijgen jou niet',
-    'studeren terwijl anderen netflixen hits different',
-    'je brein groeit letterlijk van dit moment',
-    'dit is de move die het verschil maakt',
-    'jij houdt het hoofd koel en werkt gewoon door',
-    'geen excuses, gewoon doen — chapeau',
-    'future you is zo blij met je right now',
-    'dat ze dat thuis weten',
-    'jij bent echt dat meisje / guy / persoon',
-  ],
-  closers: ['🔥', '🚀', '⭐', '💪', '🧠', '🏆', '✨', '💅', '🌟', '⚡', '🔑', '📈'],
-};
+const _COMPLIMENTS = [
+  'Slay! Weer een sessie erop 🎉',
+  'No cap, je bent écht aan het groeien 📈',
+  'W sessie! Elke keer een beetje beter 💪',
+  'Bestie, je hersenen bedanken je later 🧠',
+  'Periodt! Weer een stap dichter bij je doel 🚀',
+  'Lowkey trots op je rn ⭐',
+  'That\'s the move — consistent blijven 🔑',
+  'You ate! Serieus goed bezig 🔥',
+];
 
 function getCompletionCompliment() {
-  const pick = arr => arr[Math.floor(Math.random() * arr.length)];
-  const opener = pick(_CG.openers);
-  const core   = pick(_CG.cores);
-  const closer = pick(_CG.closers);
-  // Kleine letter na opener-met-komma of gedachtestreepje, anders hoofdletter
-  const needsLower = opener.endsWith(',') || opener.endsWith('—');
-  const body = needsLower
-    ? core.charAt(0).toLowerCase() + core.slice(1)
-    : core.charAt(0).toUpperCase() + core.slice(1);
-  return `${opener} ${body} ${closer}`;
+  return _COMPLIMENTS[Math.floor(Math.random() * _COMPLIMENTS.length)];
 }
 
 const XP_PER_SESSION = 10;
@@ -880,7 +875,7 @@ window.FS = {
   getUrgency, urgencyLabel, formatDeadline, taskTypeBadge,
   buildDailyPlan, hasSessionToday,
   isSetupDone, markSetupDone,
-  getTodayEnergy, setTodayEnergy,
+  getTodayEnergy, getTodayTime, getTodayCheckin, setTodayEnergy, setTodayCheckin,
   getCapacityWarning, getCapacityPressuredTaskIds,
   getActiveSession, setActiveSession, clearActiveSession,
   getDayKey,

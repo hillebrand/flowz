@@ -10,7 +10,7 @@
   <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5', 'flowz-purple': '#2C0094', 'flowz-nav': '#C6C9FF' }, fontFamily: { karla: ['Karla', 'sans-serif'] } } } }</script>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <script src="shared/app.js?v=15"></script>
+  <script src="shared/app.js?v=16"></script>
   <script src="shared/modal.js"></script>
   <script src="shared/nav.js"></script>
 </head>
@@ -27,13 +27,7 @@
     </a>
   </header>
 
-  <!-- Section: Dagstatus -->
-  <div class="bg-white border-b border-gray-100 px-4 py-3">
-    <div class="max-w-sm mx-auto flex items-center justify-between">
-      <div id="shortlist-vandaag-dagstatus-dagdatum" class="text-base font-semibold text-gray-800 tracking-wide uppercase"></div>
-      <div id="shortlist-vandaag-dagstatus-energieniveau-badge" class="text-xs px-3 py-1 rounded-full font-medium cursor-pointer"></div>
-    </div>
-  </div>
+  <!-- Section: Dagstatus — verwijderd, check-in zichtbaar via plan-subheader -->
 
   <main class="flex-1 px-4 py-4 max-w-sm mx-auto w-full pb-24">
 
@@ -62,9 +56,9 @@
     <div id="motivation-banner" class="hidden mb-3 rounded-xl px-4 py-3 text-sm font-medium text-center"></div>
 
     <!-- Sectieheader verplichte sessies -->
-    <div id="plan-header" class="hidden flex items-center gap-2 mb-3 px-1">
+    <div id="plan-header" class="hidden flex items-center justify-between mb-3 px-1">
       <span id="plan-header-label" class="text-xs font-bold tracking-widest text-gray-400"></span>
-      <div class="flex-1 h-px bg-gray-100"></div>
+      <span id="checkin-status" class="text-xs text-gray-400 cursor-pointer hover:text-gray-600 transition-colors"></span>
     </div>
 
     <!-- Verplichte sessies -->
@@ -91,9 +85,14 @@
     injectNav('checkin');
 
     const ENERGY_CONFIG = {
-      low:    { emoji: '😴', label: 'Laag',    badgeClass: 'bg-blue-100 text-blue-600' },
-      normal: { emoji: '😊', label: 'Normaal', badgeClass: 'bg-green-100 text-green-600' },
-      high:   { emoji: '⚡', label: 'Hoog',    badgeClass: 'bg-yellow-100 text-yellow-700' },
+      low:    { label: 'Laag',    badgeClass: 'bg-blue-100 text-blue-600' },
+      normal: { label: 'Normaal', badgeClass: 'bg-green-100 text-green-600' },
+      high:   { label: 'Hoog',    badgeClass: 'bg-yellow-100 text-yellow-700' },
+    };
+    const TIME_CONFIG = {
+      low:    { label: 'Weinig tijd',  badgeClass: 'bg-orange-100 text-orange-600' },
+      normal: { label: 'Normaal',      badgeClass: 'bg-gray-100 text-gray-600' },
+      high:   { label: 'Veel tijd',    badgeClass: 'bg-purple-100 text-purple-600' },
     };
 
     let _data = null;
@@ -104,20 +103,22 @@
     (async function() {
       _data = await FS.initData();
 
-      // Redirect to check-in if no energy set today
-      const energy = FS.getTodayEnergy();
-      if (!energy) { window.location.href = '02.1-energie-check-in.html'; return; }
+      // Redirect to check-in if no energy/time set today
+      const checkin = FS.getTodayCheckin();
+      if (!checkin?.energy || !checkin?.time) { window.location.href = '02.1-energie-check-in.html'; return; }
+      const energy = checkin.energy;
+      const time   = checkin.time;
 
-      // Day header — "VANDAAG — 6 juni 2026" stijl zoals in Figma
+      // Day header
       const now = new Date();
-      document.getElementById('shortlist-vandaag-dagstatus-dagdatum').textContent =
-        `VANDAAG — ${now.toLocaleDateString('nl', { day: 'numeric', month: 'long', year: 'numeric' })}`;
-
+      // badges
+      const tc = TIME_CONFIG[time] || TIME_CONFIG.normal;
       const ec = ENERGY_CONFIG[energy] || ENERGY_CONFIG.normal;
-      const badge = document.getElementById('shortlist-vandaag-dagstatus-energieniveau-badge');
-      badge.textContent = `${ec.emoji} ${ec.label} ✎`;
-      badge.className = `text-xs px-3 py-1 rounded-full font-medium cursor-pointer hover:opacity-70 transition-opacity ${ec.badgeClass}`;
-      badge.onclick = () => { window.location.href = '02.1-energie-check-in.html?change=1'; };
+      const statusEl = document.getElementById('checkin-status');
+      const _clock = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5 inline-block mr-0.5 -mt-px"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>`;
+      const _bolt  = `<svg viewBox="0 0 24 24" fill="currentColor" class="w-3.5 h-3.5 inline-block mr-0.5 -mt-px"><path d="M13 2L4 14h7l-1 8 10-12h-7l1-8z"/></svg>`;
+      statusEl.innerHTML = `${_clock}${tc.label}&ensp;·&ensp;${_bolt}${ec.label}`;
+      statusEl.onclick = () => { window.location.href = '02.1-energie-check-in.html?change=1'; };
 
       // IDs of tasks with capacity pressure (for orange card highlight)
       _pressuredIds = new Set(FS.getCapacityPressuredTaskIds(_data.tasks, _data.settings || {}));
@@ -125,7 +126,7 @@
       // Load today's plan from sessionStorage (stable across navigation)
       // or build fresh and save it
       _plan = FS.loadTodayPlan(_data.tasks)
-           || FS.buildDailyPlan(_data.tasks, _data.settings || {}, energy);
+           || FS.buildDailyPlan(_data.tasks, _data.settings || {}, energy, time);
       FS.saveTodayPlan(_plan);
 
       // Persist planned count for the week-overview bars on the progress page.
@@ -189,27 +190,22 @@
       const urgency   = isRecurring ? 'upcoming' : FS.getUrgency(t.deadline, Math.max(1, remaining));
 
       // Figma: witte kaart met dikke gekleurde linker rand
-      let leftBorderColor, titleColor, subjectBadgeColor;
+      let leftBorderColor, titleColor;
       if (isOptional) {
-        leftBorderColor = '#B1DAFF';    // licht blauw (optioneel)
+        leftBorderColor = '#B1DAFF';
         titleColor = 'text-gray-500';
-        subjectBadgeColor = '#B1DAFF';
       } else if (todayDone) {
-        leftBorderColor = '#BEBEBE';    // grijs (gedaan)
+        leftBorderColor = '#BEBEBE';
         titleColor = 'text-gray-400 line-through';
-        subjectBadgeColor = '#BEBEBE';
       } else if (urgency === 'urgent') {
-        leftBorderColor = '#FFB1B1';    // rood (dringend)
+        leftBorderColor = '#FFB1B1';
         titleColor = 'text-[#A30000] font-semibold';
-        subjectBadgeColor = '#FFB1B1';
       } else if (_pressuredIds.has(t.id)) {
-        leftBorderColor = '#FFD8A8';    // oranje (capaciteitsdruk)
+        leftBorderColor = '#FFD8A8';
         titleColor = 'text-amber-800 font-medium';
-        subjectBadgeColor = '#FFD8A8';
       } else {
-        leftBorderColor = '#B1DAFF';    // blauw (normaal)
+        leftBorderColor = '#B1DAFF';
         titleColor = 'text-gray-900 font-medium';
-        subjectBadgeColor = '#B1DAFF';
       }
 
       const daysUntilDeadline = t.deadline
@@ -223,7 +219,7 @@
         ? `<span class="text-xs font-medium text-indigo-400">${FS.getRecurringLabel(t)}</span>`
         : `<span class="text-xs text-gray-400">${FS.formatDeadline(t.deadline)} · nog ${remaining} sessie${remaining !== 1 ? 's' : ''}</span>`;
 
-      const subjectName = task.subject || 'overig';
+      const typeBadge = FS.taskTypeBadge(task.task_type);
 
       return `
         <div id="card-${t.id}"
@@ -239,8 +235,7 @@
             <a href="03.1-taak-detail.html?id=${t.id}" class="flex-1 min-w-0">
               <div class="flex items-center gap-1.5 flex-wrap">
                 <div class="text-sm ${titleColor}">${t.title}</div>
-                <span class="text-xs px-2 py-0.5 rounded-full font-medium text-white"
-                      style="background:${subjectBadgeColor}">${subjectName}</span>
+                ${typeBadge}
               </div>
               <div class="mt-1 flex items-center gap-2 flex-wrap">
                 ${deadlineBadge}
@@ -335,7 +330,7 @@
       const nextWeek = new Date();
       nextWeek.setDate(nextWeek.getDate() + 7);
       _data.tasks.push({
-        id: newId, title: 'Nieuwe taak', subject: 'Other',
+        id: newId, title: 'Nieuwe taak',
         deadline: nextWeek.toISOString().slice(0, 10),
         sessions_total: 1, sessions_done: 0, complexity: 'medium',
         subtasks: [], materials: [], status: 'pending', source: 'manual',

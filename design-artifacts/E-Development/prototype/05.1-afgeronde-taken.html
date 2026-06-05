@@ -10,7 +10,7 @@
   <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5', 'flowz-purple': '#2C0094', 'flowz-nav': '#C6C9FF' }, fontFamily: { karla: ['Karla', 'sans-serif'] } } } }</script>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <script src="shared/app.js?v=15"></script>
+  <script src="shared/app.js?v=16"></script>
   <script src="shared/modal.js"></script>
   <script src="shared/nav.js"></script>
 </head>
@@ -67,7 +67,7 @@
           <div class="w-6 h-6 rounded-full bg-green-100 text-green-500 flex items-center justify-center flex-shrink-0 text-xs font-bold">✓</div>
           <div class="flex-1 min-w-0">
             <a href="03.1-taak-detail.html?id=${t.id}" class="text-sm font-medium text-gray-700 line-through truncate block">${t.title}</a>
-            <div class="text-xs text-gray-400 mt-0.5">${t.subject} · ingeleverd ${FS.formatDeadline(t.deadline)}</div>
+            <div class="text-xs text-gray-400 mt-0.5">ingeleverd ${FS.formatDeadline(t.deadline)}</div>
           </div>
           <button onclick="reopenTask('${t.id}')"
                   class="text-xs text-primary hover:text-primary-dark font-medium transition-colors flex-shrink-0">

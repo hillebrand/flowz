@@ -1,3 +1,14 @@
+---
+name: bmad-export-html
+description: Converts a BMAD-generated markdown document to a self-contained branded HTML file with cover section, table of contents, and company styling. Use when exporting or generating HTML from a markdown or BMAD document. The output is a single portable HTML file that can be opened in any browser and printed. Requires branding.json (run bmad-export-setup first). Invoke with: bmad-export-html <file.md>
+license: MIT
+version: "1.3.0"
+tags:
+  - bmad
+  - html
+  - export
+  - branding
+---
 # bmad-export-html
 
 ## Role

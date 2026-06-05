@@ -1,3 +1,15 @@
+---
+name: bmad-export-site
+description: Exports all BMAD markdown documents in a project as a linked documentation site with sidebar navigation, an overview index page, and per-document table of contents. Use when generating a documentation site, exporting multiple documents, or creating navigable HTML from a docs folder. Requires branding.json (run bmad-export-setup first). Invoke with: bmad-export-site
+license: MIT
+version: "1.3.0"
+tags:
+  - bmad
+  - html
+  - site
+  - documentation
+  - export
+---
 # bmad-export-site
 
 ## Role

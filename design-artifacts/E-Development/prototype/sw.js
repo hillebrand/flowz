@@ -1,6 +1,6 @@
 // Flowz Service Worker — offline-first caching
 
-const CACHE_NAME = 'flowz-v12';
+const CACHE_NAME = 'flowz-v13';
 
 const PRECACHE = [
   '/',

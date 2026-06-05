@@ -1,3 +1,14 @@
+---
+name: bmad-export-setup
+description: Interactive setup wizard for the bmad-export module. Use this skill when setting up branding, company styling, logo, colors, or fonts for PDF and HTML export. Generates a branding.json configuration file. Invoke with: bmad-export-setup
+license: MIT
+version: "1.3.0"
+tags:
+  - bmad
+  - export
+  - branding
+  - setup
+---
 # bmad-export-setup
 
 ## Role
