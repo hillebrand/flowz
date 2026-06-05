@@ -165,7 +165,7 @@ async function handleAuth(request, cors) {
   const acct     = await acctResp.json().catch(() => ({}));
   const personId = acct?.Persoon?.Id ?? null;
 
-  return json({ access_token: accessToken, person_id: personId, expires_at: Date.now() + expiresIn * 1000 }, cors);
+  return json({ access_token: accessToken, person_id: personId, expires_at: Date.now() + expiresIn * 1000 }, 200, cors);
 }
 
 // ─── Homework ────────────────────────────────────────────────────────────────
@@ -285,7 +285,7 @@ async function handleRegister(request, env, cors) {
     return json({ error: 'Dit e-mailadres is al geregistreerd' }, 409, cors);
   const { hash, salt } = await hashPassword(password);
   await env.FLOWSTATE_KV.put(`user:${normalizedEmail}`, JSON.stringify({ hash, salt, created_at: Date.now() }));
-  return json(await createSession(env, normalizedEmail), cors);
+  return json(await createSession(env, normalizedEmail), 200, cors);
 }
 
 async function handleLogin(request, env, cors) {
@@ -297,7 +297,7 @@ async function handleLogin(request, env, cors) {
   const user = JSON.parse(userRaw);
   if (!(await verifyPassword(password, user.hash, user.salt)))
     return json({ error: 'E-mailadres of wachtwoord onjuist' }, 401, cors);
-  return json(await createSession(env, normalizedEmail), cors);
+  return json(await createSession(env, normalizedEmail), 200, cors);
 }
 
 async function handleForgotPassword(request, env, cors) {
@@ -306,7 +306,7 @@ async function handleForgotPassword(request, env, cors) {
   const normalizedEmail = email.toLowerCase().trim();
   const userRaw = await env.FLOWSTATE_KV.get(`user:${normalizedEmail}`);
   // Don't reveal whether the account exists
-  if (!userRaw) return json({ ok: true }, cors);
+  if (!userRaw) return json({ ok: true }, 200, cors);
   const token = crypto.randomUUID();
   await env.FLOWSTATE_KV.put(
     `reset:${token}`,
@@ -315,7 +315,7 @@ async function handleForgotPassword(request, env, cors) {
   );
   // No email service available — return the token so the prototype can construct the link.
   // In production this token would be emailed and never exposed in the response.
-  return json({ ok: true, _reset_token: token }, cors);
+  return json({ ok: true, _reset_token: token }, 200, cors);
 }
 
 async function handleResetPassword(request, env, cors) {
@@ -335,7 +335,7 @@ async function handleResetPassword(request, env, cors) {
   const { hash, salt } = await hashPassword(new_password);
   await env.FLOWSTATE_KV.put(`user:${email}`, JSON.stringify({ ...user, hash, salt }));
   await env.FLOWSTATE_KV.delete(`reset:${token}`);
-  return json(await createSession(env, email), cors);
+  return json(await createSession(env, email), 200, cors);
 }
 
 async function handleChangePassword(request, env, cors) {
@@ -351,7 +351,7 @@ async function handleChangePassword(request, env, cors) {
     return json({ error: 'Huidig wachtwoord klopt niet' }, 401, cors);
   const { hash, salt } = await hashPassword(new_password);
   await env.FLOWSTATE_KV.put(`user:${email}`, JSON.stringify({ ...user, hash, salt }));
-  return json({ ok: true }, cors);
+  return json({ ok: true }, 200, cors);
 }
 
 async function handleDeleteAccount(request, env, cors) {
@@ -362,20 +362,20 @@ async function handleDeleteAccount(request, env, cors) {
   await env.FLOWSTATE_KV.delete(`user:${email}`);
   await env.FLOWSTATE_KV.delete(`data:${email}`);
   if (token) await env.FLOWSTATE_KV.delete(`session:${token}`);
-  return json({ ok: true }, cors);
+  return json({ ok: true }, 200, cors);
 }
 
 async function handleMe(request, env, cors) {
   const email = await resolveToken(request, env);
   if (!email) return json({ error: 'Niet ingelogd' }, 401, cors);
-  return json({ email }, cors);
+  return json({ email }, 200, cors);
 }
 
 async function handleGetData(request, env, cors) {
   const email = await resolveToken(request, env);
   if (!email) return json({ error: 'Niet ingelogd' }, 401, cors);
   const raw = await env.FLOWSTATE_KV.get(`data:${email}`);
-  return json(raw ? JSON.parse(raw) : null, cors);
+  return json(raw ? JSON.parse(raw) : null, 200, cors);
 }
 
 async function handlePutData(request, env, cors) {
@@ -383,7 +383,7 @@ async function handlePutData(request, env, cors) {
   if (!email) return json({ error: 'Niet ingelogd' }, 401, cors);
   const data = await request.json();
   await env.FLOWSTATE_KV.put(`data:${email}`, JSON.stringify(data));
-  return json({ ok: true }, cors);
+  return json({ ok: true }, 200, cors);
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
