@@ -43,29 +43,29 @@ export default {
 
     const url = new URL(request.url);
     try {
-      if (url.pathname === '/auth'            && request.method === 'POST')   return handleAuth(request);
-      if (url.pathname === '/homework'        && request.method === 'GET')    return handleHomework(url);
-      if (url.pathname === '/register'        && request.method === 'POST')   return handleRegister(request, env);
-      if (url.pathname === '/login'           && request.method === 'POST')   return handleLogin(request, env);
-      if (url.pathname === '/forgot-password' && request.method === 'POST')   return handleForgotPassword(request, env);
-      if (url.pathname === '/reset-password'  && request.method === 'POST')   return handleResetPassword(request, env);
-      if (url.pathname === '/change-password' && request.method === 'POST')   return handleChangePassword(request, env);
-      if (url.pathname === '/account'         && request.method === 'DELETE') return handleDeleteAccount(request, env);
-      if (url.pathname === '/me'              && request.method === 'GET')    return handleMe(request, env);
-      if (url.pathname === '/data'            && request.method === 'GET')    return handleGetData(request, env);
-      if (url.pathname === '/data'            && request.method === 'PUT')    return handlePutData(request, env);
-      return json({ error: 'Not found' }, 404);
+      if (url.pathname === '/auth'            && request.method === 'POST')   return handleAuth(request, CORS);
+      if (url.pathname === '/homework'        && request.method === 'GET')    return handleHomework(url, CORS);
+      if (url.pathname === '/register'        && request.method === 'POST')   return handleRegister(request, env, CORS);
+      if (url.pathname === '/login'           && request.method === 'POST')   return handleLogin(request, env, CORS);
+      if (url.pathname === '/forgot-password' && request.method === 'POST')   return handleForgotPassword(request, env, CORS);
+      if (url.pathname === '/reset-password'  && request.method === 'POST')   return handleResetPassword(request, env, CORS);
+      if (url.pathname === '/change-password' && request.method === 'POST')   return handleChangePassword(request, env, CORS);
+      if (url.pathname === '/account'         && request.method === 'DELETE') return handleDeleteAccount(request, env, CORS);
+      if (url.pathname === '/me'              && request.method === 'GET')    return handleMe(request, env, CORS);
+      if (url.pathname === '/data'            && request.method === 'GET')    return handleGetData(request, env, CORS);
+      if (url.pathname === '/data'            && request.method === 'PUT')    return handlePutData(request, env, CORS);
+      return json({ error: 'Not found' }, 404, CORS);
     } catch (e) {
-      return json({ error: e.message }, 500);
+      return json({ error: e.message }, 500, CORS);
     }
   },
 };
 
 // ─── Auth ────────────────────────────────────────────────────────────────────
 
-async function handleAuth(request) {
+async function handleAuth(request, cors) {
   const { school, username, password } = await request.json();
-  if (!school || !username || !password) return json({ error: 'Missing fields' }, 400);
+  if (!school || !username || !password) return json({ error: 'Missing fields' }, 400, cors);
 
   const host = school.includes('.') ? school : `${school}.magister.net`;
 
@@ -113,7 +113,7 @@ async function handleAuth(request) {
 
   const sessionIdM = loginResp.url.match(/sessionId=([a-f0-9A-F-]+)/);
   const returnUrlM = loginResp.url.match(/returnUrl=([^&]+)/);
-  if (!sessionIdM || !returnUrlM) return json({ error: 'Could not start auth session' }, 401);
+  if (!sessionIdM || !returnUrlM) return json({ error: 'Could not start auth session' }, 401, cors);
 
   const sessionId = sessionIdM[1];
   const returnUrl = decodeURIComponent(returnUrlM[1]);
@@ -133,13 +133,13 @@ async function handleAuth(request) {
   // Step 3 — submit username
   const usernameResult = await challenge('username', { username });
   if (usernameResult.action === 'externalidp') {
-    return json({ error: 'Deze school gebruikt Microsoft SSO. Direct inloggen niet mogelijk.' }, 400);
+    return json({ error: 'Deze school gebruikt Microsoft SSO. Direct inloggen niet mogelijk.' }, 400, cors);
   }
 
   // Step 4 — submit password
   const pwResult = await challenge('password', { password });
   if (pwResult.error || !pwResult.redirectURL) {
-    return json({ error: 'Gebruikersnaam of wachtwoord onjuist' }, 401);
+    return json({ error: 'Gebruikersnaam of wachtwoord onjuist' }, 401, cors);
   }
 
   // Handle optional 2FA prompts (skip FIDO promo; TOTP not supported here)
@@ -151,12 +151,12 @@ async function handleAuth(request) {
   const finalResp     = await follow(`https://accounts.magister.net${pwResult.redirectURL}`);
   const finalLocation = finalResp.headers.get('location') ?? '';
   const hashIdx       = finalLocation.indexOf('#');
-  if (hashIdx === -1) return json({ error: 'Authenticatie mislukt — geen token ontvangen' }, 401);
+  if (hashIdx === -1) return json({ error: 'Authenticatie mislukt — geen token ontvangen' }, 401, cors);
 
   const hashParams  = new URLSearchParams(finalLocation.slice(hashIdx + 1));
   const accessToken = hashParams.get('access_token');
   const expiresIn   = parseInt(hashParams.get('expires_in') ?? '3600', 10);
-  if (!accessToken) return json({ error: 'Authenticatie mislukt — kon token niet uitlezen' }, 401);
+  if (!accessToken) return json({ error: 'Authenticatie mislukt — kon token niet uitlezen' }, 401, cors);
 
   // Step 6 — get personId
   const acctResp = await fetch(`https://${host}/api/account?noCache=0`, {
@@ -165,19 +165,19 @@ async function handleAuth(request) {
   const acct     = await acctResp.json().catch(() => ({}));
   const personId = acct?.Persoon?.Id ?? null;
 
-  return json({ access_token: accessToken, person_id: personId, expires_at: Date.now() + expiresIn * 1000 });
+  return json({ access_token: accessToken, person_id: personId, expires_at: Date.now() + expiresIn * 1000 }, cors);
 }
 
 // ─── Homework ────────────────────────────────────────────────────────────────
 
-async function handleHomework(url) {
+async function handleHomework(url, cors) {
   const school   = url.searchParams.get('school');
   const token    = url.searchParams.get('token');
   const personId = url.searchParams.get('person_id');
   const from     = url.searchParams.get('from') ?? today();
   const to       = url.searchParams.get('to')   ?? addDays(today(), 90);
 
-  if (!school || !token || !personId) return json({ error: 'Missing params' }, 400);
+  if (!school || !token || !personId) return json({ error: 'Missing params' }, 400, cors);
 
   const host    = school.includes('.') ? school : `${school}.magister.net`;
   const headers = { Authorization: `Bearer ${token}` };
@@ -233,7 +233,7 @@ async function handleHomework(url) {
       opdrachten_total: (opdrRaw.Items ?? []).length,
       opdrachten_matched: fromAssignments.length,
     },
-  });
+  }, 200, cors);
 }
 
 // ─── User auth ───────────────────────────────────────────────────────────────
@@ -277,36 +277,36 @@ async function resolveToken(request, env) {
   return session.email;
 }
 
-async function handleRegister(request, env) {
+async function handleRegister(request, env, cors) {
   const { email, password } = await request.json();
-  if (!email || !password) return json({ error: 'Vul email en wachtwoord in' }, 400);
+  if (!email || !password) return json({ error: 'Vul email en wachtwoord in' }, 400, cors);
   const normalizedEmail = email.toLowerCase().trim();
   if (await env.FLOWSTATE_KV.get(`user:${normalizedEmail}`))
-    return json({ error: 'Dit e-mailadres is al geregistreerd' }, 409);
+    return json({ error: 'Dit e-mailadres is al geregistreerd' }, 409, cors);
   const { hash, salt } = await hashPassword(password);
   await env.FLOWSTATE_KV.put(`user:${normalizedEmail}`, JSON.stringify({ hash, salt, created_at: Date.now() }));
-  return json(await createSession(env, normalizedEmail));
+  return json(await createSession(env, normalizedEmail), cors);
 }
 
-async function handleLogin(request, env) {
+async function handleLogin(request, env, cors) {
   const { email, password } = await request.json();
-  if (!email || !password) return json({ error: 'Vul email en wachtwoord in' }, 400);
+  if (!email || !password) return json({ error: 'Vul email en wachtwoord in' }, 400, cors);
   const normalizedEmail = email.toLowerCase().trim();
   const userRaw = await env.FLOWSTATE_KV.get(`user:${normalizedEmail}`);
-  if (!userRaw) return json({ error: 'E-mailadres of wachtwoord onjuist' }, 401);
+  if (!userRaw) return json({ error: 'E-mailadres of wachtwoord onjuist' }, 401, cors);
   const user = JSON.parse(userRaw);
   if (!(await verifyPassword(password, user.hash, user.salt)))
-    return json({ error: 'E-mailadres of wachtwoord onjuist' }, 401);
-  return json(await createSession(env, normalizedEmail));
+    return json({ error: 'E-mailadres of wachtwoord onjuist' }, 401, cors);
+  return json(await createSession(env, normalizedEmail), cors);
 }
 
-async function handleForgotPassword(request, env) {
+async function handleForgotPassword(request, env, cors) {
   const { email } = await request.json();
-  if (!email) return json({ error: 'Vul je e-mailadres in' }, 400);
+  if (!email) return json({ error: 'Vul je e-mailadres in' }, 400, cors);
   const normalizedEmail = email.toLowerCase().trim();
   const userRaw = await env.FLOWSTATE_KV.get(`user:${normalizedEmail}`);
   // Don't reveal whether the account exists
-  if (!userRaw) return json({ ok: true });
+  if (!userRaw) return json({ ok: true }, cors);
   const token = crypto.randomUUID();
   await env.FLOWSTATE_KV.put(
     `reset:${token}`,
@@ -315,83 +315,83 @@ async function handleForgotPassword(request, env) {
   );
   // No email service available — return the token so the prototype can construct the link.
   // In production this token would be emailed and never exposed in the response.
-  return json({ ok: true, _reset_token: token });
+  return json({ ok: true, _reset_token: token }, cors);
 }
 
-async function handleResetPassword(request, env) {
+async function handleResetPassword(request, env, cors) {
   const { token, new_password } = await request.json();
-  if (!token || !new_password) return json({ error: 'Ongeldige aanvraag' }, 400);
-  if (new_password.length < 8) return json({ error: 'Wachtwoord moet minimaal 8 tekens zijn' }, 400);
+  if (!token || !new_password) return json({ error: 'Ongeldige aanvraag' }, 400, cors);
+  if (new_password.length < 8) return json({ error: 'Wachtwoord moet minimaal 8 tekens zijn' }, 400, cors);
   const raw = await env.FLOWSTATE_KV.get(`reset:${token}`);
-  if (!raw) return json({ error: 'Deze link is verlopen of ongeldig' }, 400);
+  if (!raw) return json({ error: 'Deze link is verlopen of ongeldig' }, 400, cors);
   const { email, expires_at } = JSON.parse(raw);
   if (expires_at < Date.now()) {
     await env.FLOWSTATE_KV.delete(`reset:${token}`);
-    return json({ error: 'Deze link is verlopen. Vraag een nieuwe aan.' }, 400);
+    return json({ error: 'Deze link is verlopen. Vraag een nieuwe aan.' }, 400, cors);
   }
   const userRaw = await env.FLOWSTATE_KV.get(`user:${email}`);
-  if (!userRaw) return json({ error: 'Account niet gevonden' }, 404);
+  if (!userRaw) return json({ error: 'Account niet gevonden' }, 404, cors);
   const user = JSON.parse(userRaw);
   const { hash, salt } = await hashPassword(new_password);
   await env.FLOWSTATE_KV.put(`user:${email}`, JSON.stringify({ ...user, hash, salt }));
   await env.FLOWSTATE_KV.delete(`reset:${token}`);
-  return json(await createSession(env, email));
+  return json(await createSession(env, email), cors);
 }
 
-async function handleChangePassword(request, env) {
+async function handleChangePassword(request, env, cors) {
   const email = await resolveToken(request, env);
-  if (!email) return json({ error: 'Niet ingelogd' }, 401);
+  if (!email) return json({ error: 'Niet ingelogd' }, 401, cors);
   const { current_password, new_password } = await request.json();
-  if (!current_password || !new_password) return json({ error: 'Vul beide velden in' }, 400);
-  if (new_password.length < 8) return json({ error: 'Wachtwoord moet minimaal 8 tekens zijn' }, 400);
+  if (!current_password || !new_password) return json({ error: 'Vul beide velden in' }, 400, cors);
+  if (new_password.length < 8) return json({ error: 'Wachtwoord moet minimaal 8 tekens zijn' }, 400, cors);
   const userRaw = await env.FLOWSTATE_KV.get(`user:${email}`);
-  if (!userRaw) return json({ error: 'Account niet gevonden' }, 404);
+  if (!userRaw) return json({ error: 'Account niet gevonden' }, 404, cors);
   const user = JSON.parse(userRaw);
   if (!(await verifyPassword(current_password, user.hash, user.salt)))
-    return json({ error: 'Huidig wachtwoord klopt niet' }, 401);
+    return json({ error: 'Huidig wachtwoord klopt niet' }, 401, cors);
   const { hash, salt } = await hashPassword(new_password);
   await env.FLOWSTATE_KV.put(`user:${email}`, JSON.stringify({ ...user, hash, salt }));
-  return json({ ok: true });
+  return json({ ok: true }, cors);
 }
 
-async function handleDeleteAccount(request, env) {
+async function handleDeleteAccount(request, env, cors) {
   const email = await resolveToken(request, env);
-  if (!email) return json({ error: 'Niet ingelogd' }, 401);
+  if (!email) return json({ error: 'Niet ingelogd' }, 401, cors);
   const auth  = request.headers.get('Authorization') || '';
   const token = auth.replace(/^Bearer\s+/i, '').trim();
   await env.FLOWSTATE_KV.delete(`user:${email}`);
   await env.FLOWSTATE_KV.delete(`data:${email}`);
   if (token) await env.FLOWSTATE_KV.delete(`session:${token}`);
-  return json({ ok: true });
+  return json({ ok: true }, cors);
 }
 
-async function handleMe(request, env) {
+async function handleMe(request, env, cors) {
   const email = await resolveToken(request, env);
-  if (!email) return json({ error: 'Niet ingelogd' }, 401);
-  return json({ email });
+  if (!email) return json({ error: 'Niet ingelogd' }, 401, cors);
+  return json({ email }, cors);
 }
 
-async function handleGetData(request, env) {
+async function handleGetData(request, env, cors) {
   const email = await resolveToken(request, env);
-  if (!email) return json({ error: 'Niet ingelogd' }, 401);
+  if (!email) return json({ error: 'Niet ingelogd' }, 401, cors);
   const raw = await env.FLOWSTATE_KV.get(`data:${email}`);
-  return json(raw ? JSON.parse(raw) : null);
+  return json(raw ? JSON.parse(raw) : null, cors);
 }
 
-async function handlePutData(request, env) {
+async function handlePutData(request, env, cors) {
   const email = await resolveToken(request, env);
-  if (!email) return json({ error: 'Niet ingelogd' }, 401);
+  if (!email) return json({ error: 'Niet ingelogd' }, 401, cors);
   const data = await request.json();
   await env.FLOWSTATE_KV.put(`data:${email}`, JSON.stringify(data));
-  return json({ ok: true });
+  return json({ ok: true }, cors);
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function json(data, status = 200) {
+function json(data, status = 200, cors = {}) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { 'Content-Type': 'application/json', ...CORS },
+    headers: { 'Content-Type': 'application/json', ...cors },
   });
 }
 
