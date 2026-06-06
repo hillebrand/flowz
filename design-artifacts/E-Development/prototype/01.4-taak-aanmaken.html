@@ -102,6 +102,23 @@
 
     <!-- Section: Verrijking -->
     <div class="space-y-5 mb-6">
+      <!-- Type -->
+      <div>
+        <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Type</label>
+        <div id="taak-aanmaken-verrijking-type-selector" class="flex flex-wrap gap-2">
+          <button onclick="setTaskType('Huiswerk')" data-t="Huiswerk"
+                  class="type-btn py-2 px-3 rounded-xl border text-sm font-medium transition-all border-primary bg-primary/10 text-primary">Huiswerk</button>
+          <button onclick="setTaskType('Opdracht')" data-t="Opdracht"
+                  class="type-btn py-2 px-3 rounded-xl border text-sm font-medium transition-all border-gray-200 text-gray-500">Opdracht</button>
+          <button onclick="setTaskType('Proefwerk')" data-t="Proefwerk"
+                  class="type-btn py-2 px-3 rounded-xl border text-sm font-medium transition-all border-gray-200 text-gray-500">Proefwerk</button>
+          <button onclick="setTaskType('S.O.')" data-t="S.O."
+                  class="type-btn py-2 px-3 rounded-xl border text-sm font-medium transition-all border-gray-200 text-gray-500">S.O.</button>
+          <button onclick="setTaskType('Mondeling')" data-t="Mondeling"
+                  class="type-btn py-2 px-3 rounded-xl border text-sm font-medium transition-all border-gray-200 text-gray-500">Mondeling</button>
+        </div>
+      </div>
+
       <!-- Sessions stepper -->
       <div>
         <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Sessies nodig</label>
@@ -186,6 +203,7 @@
     let sessions = 1;
     let complexity = 'medium';
     let priority = 'normal';
+    let taskType = 'Huiswerk';
     let recurring = false;
     let recurringType = 'daily';
     let recurringInterval = 2;
@@ -237,6 +255,7 @@
       sessions = task.sessions_total || 1;
       complexity = task.complexity || 'medium';
       priority = task.priority || 'normal';
+      taskType = task.type || 'Huiswerk';
       recurring = task.recurring || false;
       recurringType = task.recurring_type || 'daily';
       recurringInterval = task.recurring_interval || 2;
@@ -254,6 +273,7 @@
       document.getElementById('taak-aanmaken-verrijking-sessies-stepper').textContent = sessions;
       updateComplexityUI();
       updatePriorityUI();
+      updateTaskTypeUI();
       updateRecurringUI();
       renderSubtasks();
       renderMaterials();
@@ -294,6 +314,19 @@
       document.querySelectorAll('.priority-btn').forEach(btn => {
         const active = btn.dataset.p === priority;
         btn.className = 'priority-btn flex-1 py-2.5 rounded-xl border text-sm font-medium transition-all ' +
+          (active ? 'border-primary bg-primary/10 text-primary' : 'border-gray-200 text-gray-500');
+      });
+    }
+
+    function setTaskType(v) {
+      taskType = v;
+      updateTaskTypeUI();
+    }
+
+    function updateTaskTypeUI() {
+      document.querySelectorAll('.type-btn').forEach(btn => {
+        const active = btn.dataset.t === taskType;
+        btn.className = 'type-btn py-2 px-3 rounded-xl border text-sm font-medium transition-all ' +
           (active ? 'border-primary bg-primary/10 text-primary' : 'border-gray-200 text-gray-500');
       });
     }
@@ -441,6 +474,7 @@
         task.sessions_total = sessions;
         task.complexity = complexity;
         task.priority = priority;
+        task.type = taskType === 'Huiswerk' ? null : taskType;
         task.subtasks = subtasks;
         task.materials = materials;
         task.needs_enrichment = false;

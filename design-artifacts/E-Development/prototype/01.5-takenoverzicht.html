@@ -130,12 +130,16 @@
     function render() {
       const data = FS.loadData();
       const tasks = data.tasks.filter(t => t.status !== 'done' && !t.recurring);
+      const recurringTasks = data.tasks.filter(t => t.recurring);
 
-      if (tasks.length === 0) {
+      if (tasks.length === 0 && recurringTasks.length === 0) {
         document.getElementById('empty-state').classList.remove('hidden');
         document.getElementById('task-groups').classList.add('hidden');
         return;
       }
+
+      document.getElementById('empty-state').classList.add('hidden');
+      document.getElementById('task-groups').classList.remove('hidden');
 
       const grouped = { urgent: [], this_week: [], upcoming: [] };
       tasks.forEach(t => {
@@ -143,7 +147,7 @@
         if (grouped[g]) grouped[g].push(t);
       });
 
-      const html = GROUPS
+      const deadlineHtml = GROUPS
         .filter(g => grouped[g.key].length > 0)
         .map(g => `
           <div class="mb-6">
@@ -157,7 +161,19 @@
           </div>
         `).join('');
 
-      document.getElementById('task-groups').innerHTML = html || '';
+      const recurringHtml = recurringTasks.length > 0 ? `
+        <div class="mb-6">
+          <div class="flex items-center gap-2 mb-3 px-1">
+            <span class="text-xs font-bold tracking-widest text-indigo-400">↻ TERUGKEREND</span>
+            <div class="flex-1 h-px bg-gray-100"></div>
+          </div>
+          <div class="space-y-2">
+            ${recurringTasks.map(recurringTaskCard).join('')}
+          </div>
+        </div>
+      ` : '';
+
+      document.getElementById('task-groups').innerHTML = deadlineHtml + recurringHtml;
     }
 
     function renderCalendar() {
@@ -253,6 +269,28 @@
             </div>
             <div id="takenoverzicht-takenlijst-deadline-en-sessies"
                  class="text-xs text-gray-400">${FS.formatDeadline(t.deadline)} · ${sessions}</div>
+          </div>
+          <span class="text-lg">›</span>
+        </a>
+      `;
+    }
+
+    function recurringTaskCard(t) {
+      const prio = t.priority || 'normal';
+      const prioBadge = prio === 'high' ? '<span class="text-xs bg-red-50 text-red-500 px-1.5 py-0.5 rounded font-medium">Hoog</span>'
+                      : prio === 'low'  ? '<span class="text-xs bg-blue-50 text-blue-400 px-1.5 py-0.5 rounded font-medium">Laag</span>'
+                      : '';
+      const schedule = FS.getRecurringLabel(t);
+      return `
+        <a href="03.1-taak-detail.html?id=${t.id}"
+           class="flex items-center gap-3 bg-white rounded-2xl px-4 py-4 shadow-sm border border-gray-100 hover:border-primary/30 hover:shadow-md transition-all active:scale-98 block">
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 mb-0.5 flex-wrap">
+              <div class="text-sm font-medium text-gray-900 truncate">${t.title}</div>
+              ${FS.taskTypeBadge(t.type)}
+              ${prioBadge}
+            </div>
+            <div class="text-xs text-indigo-400 font-medium">${schedule}</div>
           </div>
           <span class="text-lg">›</span>
         </a>

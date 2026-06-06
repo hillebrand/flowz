@@ -787,9 +787,9 @@ function loadTodayPlan(tasks) {
     if (saved.date !== getDayKey()) return null;
     const taskMap = new Map(tasks.map(t => [t.id, t]));
 
-    // Re-inject recurring tasks due today that haven't been completed yet
+    // Re-inject recurring tasks due today — include completed-today so they stay visible as strikethrough
     const today = getDayKey();
-    const recurringToday = tasks.filter(t => t.recurring && isRecurringDueToday(t) && t.last_completed !== today && t.status !== 'done');
+    const recurringToday = tasks.filter(t => t.recurring && isRecurringDueToday(t) && (!t.last_completed || t.last_completed === today));
 
     // Only restore non-recurring tasks from cache
     const cachedRequired = (saved.requiredIds || [])
@@ -824,26 +824,15 @@ function showToast(msg) {
   }, 2500);
 }
 
-// Mime-figuren die dansen bij het compliment
-const _MIMES = ['🕺','💃','🎉','🥳','🏆','⭐','🎊','✨','🎭','🙌','👑','💥'];
-
 function showComplimentSheet(compliment, xp) {
   const existing = document.getElementById('fs-compliment-sheet');
   if (existing) existing.remove();
-
-  const mime = _MIMES[Math.floor(Math.random() * _MIMES.length)];
 
   const style = document.createElement('style');
   style.id = 'fs-compliment-style';
   style.textContent = `
     @keyframes fs-sheet-up   { from { transform:translateY(100%) } to { transform:translateY(0) } }
     @keyframes fs-sheet-down { from { transform:translateY(0) }     to { transform:translateY(110%) } }
-    @keyframes fs-mime-dance {
-      0%,100% { transform: rotate(-8deg) scale(1);   }
-      25%     { transform: rotate( 8deg) scale(1.15); }
-      50%     { transform: rotate(-5deg) scale(1.05); }
-      75%     { transform: rotate( 5deg) scale(1.2);  }
-    }
     @keyframes fs-xp-pop {
       0%   { transform: scale(0.5) translateY(8px); opacity:0; }
       60%  { transform: scale(1.2) translateY(-4px); opacity:1; }
@@ -851,7 +840,6 @@ function showComplimentSheet(compliment, xp) {
     }
     #fs-compliment-sheet { animation: fs-sheet-up 0.4s cubic-bezier(.22,.68,0,1.4) forwards; }
     #fs-compliment-sheet.closing { animation: fs-sheet-down 0.35s ease-in forwards; }
-    .fs-mime { display:inline-block; animation: fs-mime-dance 0.7s ease-in-out infinite; font-size:72px; line-height:1; }
     .fs-xp   { display:inline-block; animation: fs-xp-pop 0.5s cubic-bezier(.22,.68,0,1.4) 0.3s both; }
   `;
   document.head.appendChild(style);
@@ -868,8 +856,7 @@ function showComplimentSheet(compliment, xp) {
 
   sheet.innerHTML = `
     <div style="width:40px;height:4px;background:#e5e7eb;border-radius:2px;margin:0 auto 20px"></div>
-    <div class="fs-mime">${mime}</div>
-    <p style="font-size:20px;font-weight:700;color:#111827;margin:16px 0 6px;line-height:1.3">${compliment}</p>
+    <p style="font-size:20px;font-weight:700;color:#111827;margin:0 0 6px;line-height:1.3">${compliment}</p>
     ${xp ? `<p class="fs-xp fs-xp-primary" style="font-size:15px;font-weight:600;margin-bottom:24px">${xp}</p>` : '<div style="height:24px"></div>'}
     <button id="fs-compliment-ok"
       style="width:100%;background:#111827;color:#fff;font-weight:700;font-size:16px;padding:16px;border:none;border-radius:16px;cursor:pointer;font-family:inherit">
@@ -896,9 +883,6 @@ function showComplimentSheet(compliment, xp) {
     }, 380);
   }
   document.getElementById('fs-compliment-ok').onclick = close;
-
-  // Fire confetti for the moment
-  setTimeout(showConfetti, 200);
 }
 
 // ── Greeting ─────────────────────────────────────────────────────────────────
