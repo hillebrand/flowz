@@ -776,6 +776,8 @@ function loadTodayPlan(tasks) {
     if (!raw) return null;
     const saved = JSON.parse(raw);
     if (saved.date !== getDayKey()) return null;
+    // Never restore a "blocked" plan — availability may have changed since caching
+    if (saved.todayAvailable === false) return null;
     const taskMap = new Map(tasks.map(t => [t.id, t]));
 
     // Re-inject recurring tasks due today — include completed-today so they stay visible as strikethrough

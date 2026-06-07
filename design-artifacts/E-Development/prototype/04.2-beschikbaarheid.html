@@ -171,6 +171,7 @@
       data.settings = data.settings || {};
       data.settings.blocked_days = settings.blocked_days;
       FS.saveData(data);
+      localStorage.removeItem('fs_daily_plan');
       const toast = document.getElementById('save-toast');
       toast.classList.remove('opacity-0');
       toast.classList.add('opacity-100');
