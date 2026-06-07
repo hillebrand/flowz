@@ -65,6 +65,17 @@
           </div>
         </div>
 
+        <!-- Sessieduur -->
+        <div>
+          <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Sessieduur <span class="normal-case font-normal text-gray-300">(optioneel)</span></label>
+          <div class="flex items-center gap-3">
+            <input id="edit-session-duration" type="number" min="5" max="180" step="5"
+                   class="w-24 border border-gray-300 rounded-xl px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary">
+            <span class="text-sm text-gray-400">min</span>
+          </div>
+          <p id="edit-sessieduur-hint" class="text-xs text-gray-300 mt-1"></p>
+        </div>
+
         <!-- Complexiteit -->
         <div>
           <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Complexiteit</label>
@@ -177,6 +188,7 @@
     let taskId = null;
     let editing = false;
     let editSessions = 1;
+    let editSessionDuration = null;
     let editComplexity = 'medium';
     let editPriority = 'normal';
     let editType = 'Huiswerk';
@@ -403,12 +415,19 @@
         document.getElementById('edit-description').value = task.description || '';
         document.getElementById('edit-deadline').value = task.deadline;
         editSessions = task.sessions_total || 1;
+        editSessionDuration = task.session_duration_min || null;
         editComplexity = task.complexity || 'medium';
         editPriority = task.priority || 'normal';
         editType = task.type || 'Huiswerk';
         editSubtasks = (task.subtasks || []).map(s => ({ ...s }));
         editMaterials = [...(task.materials || [])];
         document.getElementById('edit-sessions-count').textContent = editSessions;
+        const durEl = document.getElementById('edit-session-duration');
+        const globalDur = data.settings?.session_length_min || 25;
+        durEl.value = editSessionDuration || '';
+        durEl.placeholder = globalDur;
+        document.getElementById('edit-sessieduur-hint').textContent = `Standaard: ${globalDur} min`;
+        durEl.onchange = () => { editSessionDuration = durEl.value ? parseInt(durEl.value) : null; };
         updateEditComplexityUI();
         updateEditPriorityUI();
         updateEditTypeUI();
@@ -517,6 +536,7 @@
       task.description = document.getElementById('edit-description').value.trim();
       task.deadline = document.getElementById('edit-deadline').value || task.deadline;
       task.sessions_total = editSessions;
+      task.session_duration_min = editSessionDuration || null;
       task.complexity = editComplexity;
       task.priority = editPriority;
       task.type = editType === 'Huiswerk' ? null : editType;

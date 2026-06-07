@@ -132,6 +132,17 @@
         </div>
       </div>
 
+      <!-- Sessieduur -->
+      <div>
+        <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Sessieduur <span class="normal-case font-normal text-gray-400">(optioneel)</span></label>
+        <div class="flex items-center gap-3">
+          <input id="taak-aanmaken-verrijking-sessieduur" type="number" min="5" max="180" step="5"
+                 class="w-24 border border-gray-300 rounded-xl px-3 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary">
+          <span class="text-sm text-gray-400">min</span>
+        </div>
+        <p id="sessieduur-hint" class="text-xs text-gray-300 mt-1"></p>
+      </div>
+
       <!-- Complexity -->
       <div>
         <label class="block text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">Complexiteit</label>
@@ -201,6 +212,7 @@
     let queueIndex = 0;
     let currentTaskId = null;
     let sessions = 1;
+    let sessionDuration = null;
     let complexity = 'medium';
     let priority = 'normal';
     let taskType = 'Huiswerk';
@@ -253,6 +265,7 @@
 
       // Reset state
       sessions = task.sessions_total || 1;
+      sessionDuration = task.session_duration_min || null;
       complexity = task.complexity || 'medium';
       priority = task.priority || 'normal';
       taskType = task.type || 'Huiswerk';
@@ -271,6 +284,12 @@
       deadlineInput.value = task.deadline || '';
       deadlineInput.min = new Date().toISOString().slice(0, 10);
       document.getElementById('taak-aanmaken-verrijking-sessies-stepper').textContent = sessions;
+      const durInput = document.getElementById('taak-aanmaken-verrijking-sessieduur');
+      const globalDur = data.settings?.session_length_min || 25;
+      durInput.value = sessionDuration || '';
+      durInput.placeholder = globalDur;
+      document.getElementById('sessieduur-hint').textContent = `Standaard: ${globalDur} min`;
+      durInput.onchange = () => { sessionDuration = durInput.value ? parseInt(durInput.value) : null; };
       updateComplexityUI();
       updatePriorityUI();
       updateTaskTypeUI();
@@ -472,6 +491,7 @@
           task.recurring_weekdays = recurringType === 'weekdays' ? [...recurringWeekdays] : undefined;
         }
         task.sessions_total = sessions;
+        task.session_duration_min = sessionDuration || null;
         task.complexity = complexity;
         task.priority = priority;
         task.type = taskType === 'Huiswerk' ? null : taskType;

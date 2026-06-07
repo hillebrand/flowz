@@ -262,16 +262,14 @@ function taskTypeBadge(type) {
 }
 
 // ── Daily Plan ────────────────────────────────────────────────────────────────
-// Distributes sessions evenly across available days, respecting per-task deadlines.
-// Rule: max 1 session per task per day.
-//
-// Algorithm:
-//   pressure  = remaining_sessions / available_days_until_deadline
-//   dailyTarget = max(forcedCount, ceil(totalRemaining / totalAvailableDays))
-//   required  = top dailyTarget tasks sorted by pressure
-//   optional  = next task (only for energy normal/high; low=easy tasks only)
-//
-// Self-correcting: as sessions are logged, pressure updates daily.
+// Distributes sessions across available days respecting per-task deadlines.
+// Time budget (from energy check-in): low=60min, normal=150min, high=unlimited.
+// Session duration is per-task (task.session_duration_min) or falls back to
+// settings.session_length_min. Forced tasks (can't skip today) always included.
+
+function getTaskSessionDuration(task, settings) {
+  return task.session_duration_min || settings?.session_length_min || 25;
+}
 
 function buildDailyPlan(tasks, settings, energy, time) {
   const today = new Date();
@@ -326,23 +324,25 @@ function buildDailyPlan(tasks, settings, energy, time) {
     return { required: [...recurringToday], optional: null, dailyTarget: recurringToday.length, todayAvailable };
   }
 
-  // Total load and available capacity
-  const totalRemaining = scored.reduce((s, t) => s + t.remaining, 0);
-  const latestDeadline = scored.reduce((max, t) => t.deadline > max ? t.deadline : max, todayStr);
-  const totalDays      = Math.max(1, availableDaysUntil(latestDeadline));
+  // Time budget in minutes: low < 1h, normal 1–2.5h, high > 2.5h (unlimited)
+  const TIME_BUDGET = { low: 60, normal: 150, high: 9999 };
+  const budget = TIME_BUDGET[time] || 150;
 
-  // forced = tasks that cannot skip today (remaining == availableDays)
-  const forcedCount = scored.filter(t => t.remaining >= t.availableDays).length;
-  const baseTarget  = Math.ceil(totalRemaining / totalDays);
-  const dailyTarget = Math.max(1, forcedCount, baseTarget);
+  // Build required list: forced tasks always included, then fill up to budget
+  const required = [...recurringToday];
+  let minutesUsed = recurringToday.reduce((sum, t) => sum + getTaskSessionDuration(t, settings), 0);
 
-  // Time controls how many tasks are shown
-  const timeCap = time === 'low'  ? Math.max(forcedCount, Math.min(dailyTarget, 2))
-                : time === 'high' ? dailyTarget + 1
-                : dailyTarget; // 'normal' or unset
+  for (const t of scored) {
+    const dur = getTaskSessionDuration(t, settings);
+    const isForced = t.remaining >= t.availableDays;
+    if (isForced || minutesUsed + dur <= budget) {
+      required.push(t);
+      minutesUsed += dur;
+    }
+  }
 
-  const required   = [...recurringToday, ...scored.slice(0, timeCap)];
-  const candidates = scored.slice(timeCap);
+  const requiredIds = new Set(required.map(t => t.id));
+  const candidates  = scored.filter(t => !requiredIds.has(t.id));
 
   // Energy controls which optional task is suggested (complexity preference)
   let optional = null;
@@ -356,7 +356,7 @@ function buildDailyPlan(tasks, settings, energy, time) {
     }
   }
 
-  return { required, optional, dailyTarget: timeCap, todayAvailable };
+  return { required, optional, dailyTarget: required.length, todayAvailable };
 }
 
 // Returns local calendar date as "YYYY-MM-DD" — use this everywhere instead of toISOString()
@@ -895,7 +895,7 @@ function navigate(page) {
 window.FS = {
   initData, loadData, saveData,
   getUrgency, urgencyLabel, formatDeadline, taskTypeBadge,
-  buildDailyPlan, hasSessionToday,
+  buildDailyPlan, getTaskSessionDuration, hasSessionToday,
   isSetupDone, markSetupDone,
   getTodayEnergy, getTodayTime, getTodayCheckin, setTodayEnergy, setTodayCheckin,
   getCapacityWarning, getCapacityPressuredTaskIds,
