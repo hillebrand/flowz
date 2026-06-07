@@ -92,7 +92,7 @@
       // ── Streak ──────────────────────────────────────────────────────────────
       const { streak, studiedToday } = FS.getStreakStatus(data.completed_days || [], data.settings || {});
       const emojiEl = document.getElementById('voortgangsinzicht-streak-vuuremoji');
-      emojiEl.textContent = streak === 0 ? '💤' : studiedToday ? '🔥' : '🕯️';
+      emojiEl.textContent = '🔥';
       document.getElementById('voortgangsinzicht-streak-streak-teller').textContent =
         `${streak} dag${streak !== 1 ? 'en' : ''}`;
       document.getElementById('voortgangsinzicht-streak-streak-label').textContent =

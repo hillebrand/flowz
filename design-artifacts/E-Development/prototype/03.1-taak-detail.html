@@ -231,16 +231,17 @@
       document.getElementById('taak-detail-bewerken-voortgang-sessie-voortgangsbalk').textContent =
         `${done} van ${total} sessie${total !== 1 ? 's' : ''} gedaan`;
 
-      // Prioriteit badge
+      // Prioriteit badge — toon onder de deadline-regel met duidelijk label
       const prio = task.priority || 'normal';
       const prioLabel = prio === 'high' ? 'Hoog' : prio === 'low' ? 'Laag' : '';
       if (prioLabel) {
         const badge = document.createElement('span');
         badge.id = 'priority-badge';
-        badge.className = 'text-xs font-medium px-1.5 py-0.5 rounded ml-2 ' +
+        badge.className = 'inline-block text-xs font-medium px-2 py-0.5 rounded mt-1 ' +
           (prio === 'high' ? 'bg-red-50 text-red-500' : 'bg-blue-50 text-blue-400');
-        badge.textContent = prioLabel;
-        urgencyDot.insertAdjacentElement('afterend', badge);
+        badge.textContent = 'Prioriteit: ' + prioLabel;
+        document.getElementById('taak-detail-bewerken-taak-info-vak-en-deadline')
+          .insertAdjacentElement('afterend', badge);
       }
 
       const startBtn = document.getElementById('taak-detail-bewerken-voortgang-sessie-starten-knop');

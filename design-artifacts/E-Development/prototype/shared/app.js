@@ -679,22 +679,13 @@ function getStreakStatus(completedDays, settings) {
 // ── Gamification ─────────────────────────────────────────────────────────────
 
 function getStreakMessage(streak, studiedToday) {
-  if (streak === 0) return 'No cap, begin vandaag — elke dag telt 👀';
-  if (!studiedToday) return `Aye, studeer vandaag om je ${streak}-daagse streak te saven! ⚡`;
-  if (streak === 1)  return 'W move! Dag 1 zit erop, let\'s go 🔥';
-  if (streak === 2)  return 'Twee op een rij — wat een vibe 🚀';
-  if (streak < 5)   return `${streak} dagen non-stop, slay! Je hebt écht dat ritme ⚡`;
-  if (streak < 7)   return `${streak} dagen?! Bestie dat is fire 🌟`;
-  if (streak < 14)  return `${streak} dagen aan een stuk — dat is geen fluke, dat ben jij 🏆`;
-  if (streak < 21)  return 'Twee weken! Echt niet normaal meer 👑';
-  if (streak < 30)  return 'Drie weken non-stop, dat is main character energy 🔥';
-  return `${streak} dagen! Certified studeerheld, periodt 👑🔥`;
+  if (studiedToday && streak > 0) return `Een streak van ${streak} dag${streak !== 1 ? 'en' : ''}, ga zo door`;
+  return 'Studeer vandaag om je streak te behouden';
 }
 
 const _COMPLIMENTS = [
   'Slay! Weer een sessie erop 🎉',
   'No cap, je bent écht aan het groeien 📈',
-  'W sessie! Elke keer een beetje beter 💪',
   'Bestie, je hersenen bedanken je later 🧠',
   'Periodt! Weer een stap dichter bij je doel 🚀',
   'Lowkey trots op je rn ⭐',

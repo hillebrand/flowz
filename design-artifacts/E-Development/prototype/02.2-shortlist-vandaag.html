@@ -166,8 +166,12 @@
       const label  = document.getElementById('plan-header-label');
       const n      = _plan.required.length;
       const done   = _plan.required.filter(t => FS.hasSessionToday(t.id, _data.sessions_log)).length;
+      const _days   = ['ZONDAG','MAANDAG','DINSDAG','WOENSDAG','DONDERDAG','VRIJDAG','ZATERDAG'];
+      const _months = ['JANUARI','FEBRUARI','MAART','APRIL','MEI','JUNI','JULI','AUGUSTUS','SEPTEMBER','OKTOBER','NOVEMBER','DECEMBER'];
+      const _now    = new Date();
+      const _dateStr = `${_days[_now.getDay()]} ${_now.getDate()} ${_months[_now.getMonth()]}`;
       header.classList.remove('hidden');
-      label.textContent = `VANDAAG — ${done}/${n} SESSIE${n !== 1 ? 'S' : ''}`;
+      label.textContent = `${_dateStr} — ${done}/${n} SESSIE${n !== 1 ? 'S' : ''}`;
 
       document.getElementById('shortlist-container').innerHTML =
         _plan.required.map(t => taskCard(t, false)).join('');
