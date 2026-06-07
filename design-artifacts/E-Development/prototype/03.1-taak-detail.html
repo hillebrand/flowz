@@ -26,16 +26,22 @@
   <main class="flex-1 px-6 py-6 max-w-sm mx-auto w-full overflow-y-auto pb-10">
 
     <!-- Section: Taak Info -->
-    <div class="mb-6">
-      <div class="flex items-start justify-between gap-2 mb-1">
-        <h1 id="taak-detail-bewerken-taak-info-taaknaam"
-            class="text-xl font-semibold text-gray-900 flex-1"></h1>
-        <span id="urgency-dot" class="text-xl mt-0.5"></span>
-      </div>
+    <div class="mb-8">
+      <h1 id="taak-detail-bewerken-taak-info-taaknaam"
+          class="text-2xl font-bold text-gray-900 leading-tight mb-3"></h1>
+
+      <!-- Meta: deadline / herhaling -->
       <p id="taak-detail-bewerken-taak-info-vak-en-deadline"
-         class="text-sm text-gray-400"></p>
+         class="text-sm text-gray-400 mb-3"></p>
+
+      <!-- Pills: type + prioriteit + complexiteit -->
+      <div id="meta-pills" class="flex flex-wrap gap-2 mb-4"></div>
+
+      <!-- Urgency indicator (hidden, kept for JS compat) -->
+      <span id="urgency-dot" class="hidden"></span>
+
       <p id="taak-detail-bewerken-taak-info-omschrijving"
-         class="text-sm text-gray-600 mt-2 leading-relaxed"></p>
+         class="text-sm text-gray-500 leading-relaxed border-l-2 border-gray-100 pl-3"></p>
 
       <!-- Edit form (hidden by default) -->
       <div id="edit-form" class="hidden mt-4 space-y-4">
@@ -139,36 +145,37 @@
     </div>
 
     <!-- Section: Voortgang -->
-    <div class="bg-gray-50 rounded-2xl px-4 py-4 mb-6">
-      <div class="flex items-center justify-between mb-3">
-        <p id="taak-detail-bewerken-voortgang-sessie-voortgangsbalk"
-           class="text-sm font-medium text-gray-700"></p>
+    <div class="border border-gray-200 rounded-2xl p-5 mb-8">
+      <div class="flex items-center justify-between mb-4">
+        <span class="text-xs font-bold text-gray-400 uppercase tracking-widest">Voortgang</span>
+        <span id="taak-detail-bewerken-voortgang-sessie-voortgangsbalk"
+              class="text-sm font-semibold text-gray-700"></span>
       </div>
       <!-- Dot progress bar -->
-      <div id="session-dots" class="flex gap-2 mb-4"></div>
+      <div id="session-dots" class="flex gap-2 mb-5"></div>
       <!-- Start session button -->
       <button id="taak-detail-bewerken-voortgang-sessie-starten-knop"
               onclick="startSession()"
-              class="w-full bg-primary hover:bg-primary-dark text-white font-semibold py-3 rounded-xl text-sm transition-all active:scale-98 mb-2">
+              class="w-full bg-primary hover:bg-primary-dark text-white font-semibold py-3.5 rounded-xl text-sm transition-all active:scale-98 mb-2">
         ▶ Sessie starten
       </button>
       <button id="taak-detail-bewerken-voortgang-sessie-loggen-knop"
               onclick="logSession()"
-              class="w-full text-xs text-gray-400 hover:text-primary transition-colors py-2">
+              class="w-full text-xs text-gray-400 hover:text-primary transition-colors py-1.5">
         + Handmatig sessie registreren
       </button>
     </div>
 
     <!-- Section: Subtaken -->
-    <div id="subtask-section" class="mb-6">
-      <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Deeltaken</h3>
-      <div id="subtask-list" class="space-y-2"></div>
+    <div id="subtask-section" class="mb-8">
+      <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Deeltaken</h3>
+      <div id="subtask-list" class="space-y-3"></div>
       <div id="no-subtasks" class="hidden text-xs text-gray-300 italic">Geen deeltaken toegevoegd</div>
     </div>
 
     <!-- Section: Benodigdheden -->
-    <div id="materials-section" class="mb-6">
-      <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Benodigdheden</h3>
+    <div id="materials-section" class="mb-8">
+      <h3 class="text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">Benodigdheden</h3>
       <div id="materials-list" class="flex flex-wrap gap-2"></div>
       <div id="no-materials" class="hidden text-xs text-gray-300 italic">Geen benodigdheden toegevoegd</div>
     </div>
@@ -213,20 +220,31 @@
       document.getElementById('taak-detail-bewerken-taak-info-vak-en-deadline').textContent =
         task.recurring ? '↻ Herhalende taak' : `Inleveren ${FS.formatDeadline(task.deadline)}`;
 
-      // Type badge (Proefwerk / Mondeling / Opdracht)
-      const existingTypeBadge = document.getElementById('type-badge');
-      if (existingTypeBadge) existingTypeBadge.remove();
-      if (task.type && task.type !== 'Huiswerk') {
-        document.getElementById('taak-detail-bewerken-taak-info-vak-en-deadline')
-          .insertAdjacentHTML('beforebegin', `<span id="type-badge" class="inline-block mb-1">${FS.taskTypeBadge(task.type)}</span>`);
+      // Pills: type + urgentie + prioriteit + complexiteit
+      const urgency = task.recurring ? 'upcoming' : FS.getUrgency(task.deadline, Math.max(1, task.sessions_total - task.sessions_done));
+      const pills = [];
+
+      if (task.type && task.type !== 'Huiswerk') pills.push(FS.taskTypeBadge(task.type));
+
+      const urgencyMap = { urgent: ['🔴', 'bg-red-50 text-red-500'], this_week: ['🟡', 'bg-yellow-50 text-yellow-600'], upcoming: ['🟢', 'bg-green-50 text-green-600'] };
+      const [urgEmoji, urgClass] = urgencyMap[urgency] || urgencyMap.upcoming;
+      if (!task.recurring) {
+        pills.push(`<span class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full ${urgClass}">${urgEmoji} ${urgency === 'urgent' ? 'Urgent' : urgency === 'this_week' ? 'Deze week' : 'Op tijd'}</span>`);
       }
 
-      const urgency = task.recurring ? 'upcoming' : FS.getUrgency(task.deadline, Math.max(1, task.sessions_total - task.sessions_done));
-      const urgencyDot = document.getElementById('urgency-dot');
-      urgencyDot.textContent = task.recurring ? '↻' : (urgency === 'urgent' ? '🔴' : urgency === 'this_week' ? '🟡' : '🟢');
-      // Remove previously injected priority badge if re-rendering
-      const existingBadge = document.getElementById('priority-badge');
-      if (existingBadge) existingBadge.remove();
+      const prio = task.priority || 'normal';
+      if (prio !== 'normal') {
+        const prioClass = prio === 'high' ? 'bg-red-50 text-red-500' : 'bg-blue-50 text-blue-400';
+        pills.push(`<span class="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full ${prioClass}">Prioriteit: ${prio === 'high' ? 'Hoog' : 'Laag'}</span>`);
+      }
+
+      const comp = task.complexity || 'medium';
+      if (comp !== 'medium') {
+        const compClass = comp === 'high' ? 'bg-orange-50 text-orange-500' : 'bg-gray-100 text-gray-400';
+        pills.push(`<span class="inline-flex items-center text-xs font-medium px-2.5 py-1 rounded-full ${compClass}">Complexiteit: ${comp === 'high' ? 'Hoog' : 'Laag'}</span>`);
+      }
+
+      document.getElementById('meta-pills').innerHTML = pills.join('');
 
       // Omschrijving
       const descEl = document.getElementById('taak-detail-bewerken-taak-info-omschrijving');
@@ -241,20 +259,7 @@
       const done = task.sessions_done;
       const total = task.sessions_total;
       document.getElementById('taak-detail-bewerken-voortgang-sessie-voortgangsbalk').textContent =
-        `${done} van ${total} sessie${total !== 1 ? 's' : ''} gedaan`;
-
-      // Prioriteit badge — toon onder de deadline-regel met duidelijk label
-      const prio = task.priority || 'normal';
-      const prioLabel = prio === 'high' ? 'Hoog' : prio === 'low' ? 'Laag' : '';
-      if (prioLabel) {
-        const badge = document.createElement('span');
-        badge.id = 'priority-badge';
-        badge.className = 'inline-block text-xs font-medium px-2 py-0.5 rounded mt-1 ' +
-          (prio === 'high' ? 'bg-red-50 text-red-500' : 'bg-blue-50 text-blue-400');
-        badge.textContent = 'Prioriteit: ' + prioLabel;
-        document.getElementById('taak-detail-bewerken-taak-info-vak-en-deadline')
-          .insertAdjacentElement('afterend', badge);
-      }
+        `${done} / ${total} sessie${total !== 1 ? 's' : ''}`;
 
       const startBtn = document.getElementById('taak-detail-bewerken-voortgang-sessie-starten-knop');
       const logBtn = document.getElementById('taak-detail-bewerken-voortgang-sessie-loggen-knop');
