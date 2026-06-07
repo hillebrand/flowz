@@ -118,7 +118,6 @@
       const _clock = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5 inline-block mr-0.5 -mt-px"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>`;
       const _bolt  = `<svg viewBox="0 0 24 24" fill="currentColor" class="w-3.5 h-3.5 inline-block mr-0.5 -mt-px"><path d="M13 2L4 14h7l-1 8 10-12h-7l1-8z"/></svg>`;
       statusEl.innerHTML = `${_clock}${tc.label}&ensp;·&ensp;${_bolt}${ec.label}`;
-      statusEl.onclick = () => { window.location.href = '02.1-energie-check-in.html?change=1'; };
 
       // IDs of tasks with capacity pressure (for orange card highlight)
       _pressuredIds = new Set(FS.getCapacityPressuredTaskIds(_data.tasks, _data.settings || {}));
@@ -270,7 +269,7 @@
           FS.saveData(_data);
         }
         banner.className = 'mb-3 rounded-xl px-4 py-4 text-center bg-green-50 border border-green-200';
-        banner.innerHTML = '<div class="text-2xl mb-1">🎉</div><div class="font-bold text-green-800 text-base">Hoera! Je bent klaar voor vandaag!</div><div class="text-sm text-green-600 mt-0.5">Nice — geniet van je vrije tijd!</div>';
+        banner.innerHTML = '<div class="text-2xl mb-1">🎉</div><div class="font-bold text-green-800 text-base">Hoera! Je bent klaar voor vandaag!</div><div class="text-sm text-green-600 mt-0.5 mb-3">Nice — geniet van je vrije tijd!</div><button onclick="goAddTask()" class="text-sm font-medium text-green-700 border border-green-300 rounded-xl px-4 py-2 hover:bg-green-100 transition-colors">+ Extra taak toevoegen</button>';
         banner.classList.remove('hidden');
         if (!_confettiFired) {
           _confettiFired = true;
