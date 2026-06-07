@@ -1,37 +1,24 @@
-# Flowz — GitHub Pages Deployment
+# Flowz — Deployment
 
-## Eenmalige setup
+## Live URL
 
-### 1. Maak een GitHub repository aan
-1. Ga naar https://github.com/new
-2. Naam: `flowstate` (of een andere naam)
-3. Zet op **Public**
-4. Klik **Create repository**
+De app staat live op:
+```
+https://flowz.pages.dev
+```
 
-### 2. Push de prototype map
-Open een terminal in de map `design-artifacts/E-Development/prototype/` en voer uit:
+Cloudflare Pages deployt automatisch bij elke push naar de `main` branch van `git@github.com:hillebrand/flowz.git`.
+
+## Deployen
 
 ```bash
-git init
+cd design-artifacts/E-Development/prototype
 git add .
-git commit -m "Initial Flowz prototype"
-git branch -M main
-git remote add origin https://github.com/JOUW-GEBRUIKERSNAAM/flowstate.git
-git push -u origin main
+git commit -m "jouw commit bericht"
+git push
 ```
-*(vervang `JOUW-GEBRUIKERSNAAM` door je eigen GitHub-gebruikersnaam)*
 
-### 3. Zet GitHub Pages aan
-1. Ga naar je repository op GitHub
-2. Klik op **Settings** → **Pages** (links in de sidebar)
-3. Onder **Source**: kies `Deploy from a branch`
-4. Branch: `main`, folder: `/ (root)`
-5. Klik **Save**
-
-Na ±1 minuut is de app live op:
-```
-https://JOUW-GEBRUIKERSNAAM.github.io/flowstate/
-```
+Na ±1 minuut zijn de wijzigingen live op https://flowz.pages.dev.
 
 ---
 
