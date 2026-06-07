@@ -148,8 +148,11 @@
     <div class="border border-gray-200 rounded-2xl p-5 mb-8">
       <div class="flex items-center justify-between mb-4">
         <span class="text-xs font-bold text-gray-400 uppercase tracking-widest">Voortgang</span>
-        <span id="taak-detail-bewerken-voortgang-sessie-voortgangsbalk"
-              class="text-sm font-semibold text-gray-700"></span>
+        <div class="flex items-center gap-3">
+          <span id="session-duration-label" class="text-xs text-gray-400"></span>
+          <span id="taak-detail-bewerken-voortgang-sessie-voortgangsbalk"
+                class="text-sm font-semibold text-gray-700"></span>
+        </div>
       </div>
       <!-- Dot progress bar -->
       <div id="session-dots" class="flex gap-2 mb-5"></div>
@@ -260,6 +263,10 @@
       const total = task.sessions_total;
       document.getElementById('taak-detail-bewerken-voortgang-sessie-voortgangsbalk').textContent =
         `${done} / ${total} sessie${total !== 1 ? 's' : ''}`;
+
+      const durMin = FS.getTaskSessionDuration(task, data.settings || {});
+      const durLabel = task.session_duration_min ? `${durMin} min / sessie` : `${durMin} min / sessie (standaard)`;
+      document.getElementById('session-duration-label').textContent = durLabel;
 
       const startBtn = document.getElementById('taak-detail-bewerken-voortgang-sessie-starten-knop');
       const logBtn = document.getElementById('taak-detail-bewerken-voortgang-sessie-loggen-knop');
