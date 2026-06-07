@@ -267,6 +267,15 @@ function taskTypeBadge(type) {
 // Session duration is per-task (task.session_duration_min) or falls back to
 // settings.session_length_min. Forced tasks (can't skip today) always included.
 
+function isTodayAvailable(settings) {
+  const todayStr = getDayKey();
+  const d = new Date(todayStr + 'T12:00:00');
+  const dayName = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'][d.getDay()];
+  const recurringBlocked = settings?.blocked_days?.recurring || ['saturday', 'sunday'];
+  const specific         = settings?.blocked_days?.specific   || [];
+  return !recurringBlocked.includes(dayName) && !specific.includes(todayStr);
+}
+
 function getTaskSessionDuration(task, settings) {
   return task.session_duration_min || settings?.session_length_min || 25;
 }
@@ -897,7 +906,7 @@ function navigate(page) {
 window.FS = {
   initData, loadData, saveData,
   getUrgency, urgencyLabel, formatDeadline, taskTypeBadge,
-  buildDailyPlan, getTaskSessionDuration, hasSessionToday,
+  buildDailyPlan, getTaskSessionDuration, isTodayAvailable, hasSessionToday,
   isSetupDone, markSetupDone,
   getTodayEnergy, getTodayTime, getTodayCheckin, setTodayEnergy, setTodayCheckin,
   getCapacityWarning, getCapacityPressuredTaskIds,

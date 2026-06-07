@@ -123,10 +123,14 @@
       // IDs of tasks with capacity pressure (for orange card highlight)
       _pressuredIds = new Set(FS.getCapacityPressuredTaskIds(_data.tasks, _data.settings || {}));
 
-      // Load today's plan from sessionStorage (stable across navigation)
-      // or build fresh and save it
+      // Load today's plan from cache, but always re-verify availability against
+      // current settings — recurring blocks may have changed since the plan was cached.
+      const _currentlyAvailable = FS.isTodayAvailable(_data.settings || {});
       _plan = FS.loadTodayPlan(_data.tasks)
            || FS.buildDailyPlan(_data.tasks, _data.settings || {}, energy, time);
+      if (_plan.todayAvailable !== _currentlyAvailable) {
+        _plan = FS.buildDailyPlan(_data.tasks, _data.settings || {}, energy, time);
+      }
       FS.saveTodayPlan(_plan);
 
       // Persist planned count for the week-overview bars on the progress page.
