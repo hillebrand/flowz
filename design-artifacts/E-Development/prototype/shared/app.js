@@ -334,7 +334,7 @@ function buildDailyPlan(tasks, settings, energy, time) {
   }
 
   // Time budget in minutes: low < 1h, normal 1–2.5h, high > 2.5h (unlimited)
-  const TIME_BUDGET = { low: 60, normal: 150, high: 9999 };
+  const TIME_BUDGET = { low: 60, normal: 150, high: 360 };
   const budget = TIME_BUDGET[time] || 150;
 
   // Build required list: forced tasks always included, then fill up to budget
@@ -372,7 +372,7 @@ function buildDailyPlan(tasks, settings, energy, time) {
     todayAvailable,
     minutesPlanned: minutesUsed,
     timeBudget: budget,
-    timeOverBudget: budget < 9999 && minutesUsed > budget,
+    timeOverBudget: minutesUsed > budget,
   };
 }
 

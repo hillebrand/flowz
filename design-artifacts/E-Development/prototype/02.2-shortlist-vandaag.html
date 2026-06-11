@@ -10,7 +10,7 @@
   <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5', 'flowz-purple': '#2C0094', 'flowz-nav': '#C6C9FF' }, fontFamily: { karla: ['Karla', 'sans-serif'] } } } }</script>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <script src="shared/app.js?v=19"></script>
+  <script src="shared/app.js?v=20"></script>
   <script src="shared/modal.js"></script>
   <script src="shared/nav.js"></script>
 </head>
@@ -162,7 +162,7 @@
 
       // Show time warning when forced tasks exceed the chosen time budget
       if (_plan.timeOverBudget) {
-        const budgetLabel = { low: 'een uur', normal: '2,5 uur' }[checkin.time] || `${_plan.timeBudget} minuten`;
+        const budgetLabel = { low: 'een uur', normal: '2,5 uur', high: '6 uur' }[checkin.time] || `${_plan.timeBudget} minuten`;
         document.getElementById('time-warning-text').textContent =
           `Je huiswerk vraagt vandaag meer tijd dan je beschikbaar hebt. Je hebt aangegeven ${budgetLabel} te hebben, maar het huiswerk kost nog zo'n ${Math.round(_plan.minutesPlanned / 60 * 10) / 10} uur. Plan extra tijd in!`;
         document.getElementById('time-warning').classList.remove('hidden');
