@@ -6,7 +6,7 @@
  *   GET  /homework         ?school=&token=&person_id=&from=&to= → { assignments: [...] }
  *   POST /register         { email, password } → { token, expires_at }
  *   POST /login            { email, password } → { token, expires_at }
- *   POST /forgot-password  { email } → { ok: true }
+ *   POST /forgot-password  { email } → { ok: true }  — verstuurt reset-mail via Resend.com
  *   POST /reset-password   { token, new_password } → { token, expires_at }
  *   POST /change-password  (Bearer) { current_password, new_password } → { ok: true }
  *   DELETE /account        (Bearer) → { ok: true }
@@ -313,9 +313,39 @@ async function handleForgotPassword(request, env, cors) {
     JSON.stringify({ email: normalizedEmail, expires_at: Date.now() + 60 * 60 * 1000 }),
     { expirationTtl: 3600 },
   );
-  // No email service available — return the token so the prototype can construct the link.
-  // In production this token would be emailed and never exposed in the response.
-  return json({ ok: true, _reset_token: token }, 200, cors);
+
+  const resetLink = `flowz://reset-password?token=${token}`;
+  const webFallback = `https://flowz.pages.dev/00.4-wachtwoord-resetten.html?token=${token}`;
+
+  try {
+    await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${env.RESEND_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: 'Flowz <noreply@flowz.pages.dev>',
+        to: [normalizedEmail],
+        subject: 'Wachtwoord opnieuw instellen — Flowz',
+        html: `
+          <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:32px 24px">
+            <h1 style="font-size:24px;font-weight:700;color:#111827;margin-bottom:8px">Wachtwoord opnieuw instellen</h1>
+            <p style="color:#6b7280;margin-bottom:24px">Klik op de knop hieronder om je wachtwoord te wijzigen. De link is 1 uur geldig.</p>
+            <a href="${webFallback}"
+               style="display:inline-block;background:#6366f1;color:#fff;font-weight:600;padding:12px 24px;border-radius:12px;text-decoration:none;margin-bottom:24px">
+              Wachtwoord wijzigen
+            </a>
+            <p style="color:#9ca3af;font-size:13px">Heb jij dit niet aangevraagd? Dan hoef je niks te doen.</p>
+          </div>`,
+      }),
+    });
+  } catch (e) {
+    // Email sending failed — log but don't expose to client
+    console.error('Resend error:', e);
+  }
+
+  return json({ ok: true }, 200, cors);
 }
 
 async function handleResetPassword(request, env, cors) {

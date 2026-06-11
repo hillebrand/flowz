@@ -5,3 +5,6 @@ compatibility_date = "2024-01-01"
 [[kv_namespaces]]
 binding = "FLOWSTATE_KV"
 id = "0b8c9d4fd3e64eed9a3a1a5d8e1f9561"
+
+# Secrets (stel in via CLI — nooit in dit bestand):
+#   wrangler secret put RESEND_API_KEY
