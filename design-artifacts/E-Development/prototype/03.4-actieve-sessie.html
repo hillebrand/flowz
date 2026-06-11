@@ -10,7 +10,7 @@
   <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5', 'flowz-purple': '#2C0094', 'flowz-nav': '#C6C9FF' }, fontFamily: { karla: ['Karla', 'sans-serif'] } } } }</script>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <script src="shared/app.js?v=17"></script>
+  <script src="shared/app.js?v=18"></script>
   <style>
     .timer-ring { transform: rotate(-90deg); transform-origin: 50% 50%; }
     @keyframes fadeInUp { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
@@ -53,10 +53,16 @@
         <span id="subtask-title" class="text-sm font-medium text-gray-800 leading-snug"></span>
       </label>
 
+      <!-- Skip subtask -->
+      <button id="subtask-skip-btn" onclick="skipSubtask()"
+              class="mt-2 w-full text-xs text-gray-400 hover:text-amber-500 transition-colors py-1 text-center">
+        Deze overslaan →
+      </button>
+
       <!-- All subtasks toggle -->
       <button onclick="toggleAllSubtasks()"
               id="all-subtasks-toggle"
-              class="mt-3 w-full text-xs text-gray-400 hover:text-primary transition-colors py-1 text-center">
+              class="mt-1 w-full text-xs text-gray-400 hover:text-primary transition-colors py-1 text-center">
         Alle deeltaken bekijken ▾
       </button>
       <div id="all-subtasks-list" class="hidden mt-2 space-y-1.5"></div>
@@ -185,6 +191,10 @@
       document.getElementById('subtask-check').checked = false;
       document.getElementById('subtask-container').classList.remove('hidden');
       document.getElementById('no-subtask').classList.add('hidden');
+      // Hide skip button when only one pending subtask remains
+      const skipBtn = document.getElementById('subtask-skip-btn');
+      if (pending.length > 1) skipBtn.classList.remove('hidden');
+      else skipBtn.classList.add('hidden');
       // Refresh expanded list if it's open
       if (!document.getElementById('all-subtasks-list').classList.contains('hidden')) {
         renderAllSubtasks(task);
@@ -226,6 +236,28 @@
       const pending = task.subtasks.filter(s => !s.done);
       if (pending.length === 0) return;
       pending[0].done = true;
+      FS.saveData(data);
+
+      // Animate and show next
+      const row = document.getElementById('subtask-row');
+      row.classList.add('opacity-0', 'transition-opacity', 'duration-300');
+      setTimeout(() => {
+        renderCurrentSubtask(task);
+        row.classList.remove('opacity-0');
+      }, 350);
+    }
+
+    function skipSubtask() {
+      const data = FS.loadData();
+      const task = data.tasks.find(t => t.id === taskId);
+      if (!task) return;
+
+      const pending = task.subtasks.filter(s => !s.done);
+      if (pending.length <= 1) return;
+
+      // Move first pending subtask to the end of the array
+      const idx = task.subtasks.indexOf(pending[0]);
+      task.subtasks.push(task.subtasks.splice(idx, 1)[0]);
       FS.saveData(data);
 
       // Animate and show next

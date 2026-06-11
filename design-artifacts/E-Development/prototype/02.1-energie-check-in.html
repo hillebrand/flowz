@@ -10,7 +10,7 @@
   <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5', 'flowz-purple': '#2C0094', 'flowz-nav': '#C6C9FF' }, fontFamily: { karla: ['Karla', 'sans-serif'] } } } }</script>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <script src="shared/app.js?v=17"></script>
+  <script src="shared/app.js?v=18"></script>
   <script src="shared/nav.js"></script>
 </head>
 <body class="bg-white min-h-screen flex flex-col font-karla">
@@ -95,7 +95,7 @@
 
     function selectTime(level) {
       _selectedTime = level;
-      document.querySelectorAll('.time-btn').forEach(btn => {
+      document.querySelectorAll('[data-time]').forEach(btn => {
         btn.className = btn.dataset.time === level ? BTN_SELECTED : BTN_DEFAULT;
       });
       document.getElementById('time-next-btn').classList.remove('hidden');
@@ -118,7 +118,7 @@
 
     function selectEnergy(level) {
       _selectedEnergy = level;
-      document.querySelectorAll('.energy-btn').forEach(btn => {
+      document.querySelectorAll('[data-energy]').forEach(btn => {
         btn.className = btn.dataset.energy === level ? BTN_SELECTED : BTN_DEFAULT;
       });
       document.getElementById('energy-confirm-btn').classList.remove('hidden');
