@@ -10,7 +10,7 @@
   <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5', 'flowz-purple': '#2C0094', 'flowz-nav': '#C6C9FF' }, fontFamily: { karla: ['Karla', 'sans-serif'] } } } }</script>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <script src="shared/app.js?v=18"></script>
+  <script src="shared/app.js?v=19"></script>
   <script src="shared/modal.js"></script>
   <script src="shared/nav.js"></script>
 </head>
@@ -54,6 +54,14 @@
 
     <!-- Motivation banner (1 remaining / all done) -->
     <div id="motivation-banner" class="hidden mb-3 rounded-xl px-4 py-3 text-sm font-medium text-center"></div>
+
+    <!-- Time warning banner -->
+    <div id="time-warning" class="hidden mb-3 rounded-xl px-4 py-3 bg-amber-50 border border-amber-200">
+      <div class="flex items-start gap-2">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+        <p id="time-warning-text" class="text-xs font-medium text-amber-800 leading-snug"></p>
+      </div>
+    </div>
 
     <!-- Sectieheader verplichte sessies -->
     <div id="plan-header" class="hidden flex items-center justify-between mb-3 px-1">
@@ -150,6 +158,14 @@
       if (_plan.required.length === 0) {
         document.getElementById('empty-state').classList.remove('hidden');
         return;
+      }
+
+      // Show time warning when forced tasks exceed the chosen time budget
+      if (_plan.timeOverBudget) {
+        const budgetLabel = { low: 'een uur', normal: '2,5 uur' }[checkin.time] || `${_plan.timeBudget} minuten`;
+        document.getElementById('time-warning-text').textContent =
+          `Je huiswerk vraagt vandaag meer tijd dan je beschikbaar hebt. Je hebt aangegeven ${budgetLabel} te hebben, maar het huiswerk kost nog zo'n ${Math.round(_plan.minutesPlanned / 60 * 10) / 10} uur. Plan extra tijd in!`;
+        document.getElementById('time-warning').classList.remove('hidden');
       }
 
       // Urgency banner removed — colour-coded card borders communicate this

@@ -365,7 +365,15 @@ function buildDailyPlan(tasks, settings, energy, time) {
     }
   }
 
-  return { required, optional, dailyTarget: required.length, todayAvailable };
+  return {
+    required,
+    optional,
+    dailyTarget: required.length,
+    todayAvailable,
+    minutesPlanned: minutesUsed,
+    timeBudget: budget,
+    timeOverBudget: budget < 9999 && minutesUsed > budget,
+  };
 }
 
 // Returns local calendar date as "YYYY-MM-DD" — use this everywhere instead of toISOString()
