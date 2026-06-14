@@ -14,6 +14,32 @@ interface DataState {
   getTodayCheckin: () => CheckinData | null;
 }
 
+const WEEKDAY_NAMES = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+
+function migrateSettings(settings: Record<string, unknown>): Settings {
+  const defaultWeek: Record<string, number> = {
+    monday: 60, tuesday: 60, wednesday: 60, thursday: 60,
+    friday: 60, saturday: 120, sunday: 0,
+  };
+
+  if ('blocked_days' in settings && !('capacity_week' in settings)) {
+    const blocked = settings['blocked_days'] as { recurring?: string[]; specific?: string[] };
+    const capacity_week = { ...defaultWeek };
+    for (const day of (blocked.recurring ?? [])) {
+      if (day in capacity_week) capacity_week[day] = 0;
+    }
+    const capacity_overrides: Record<string, number> = {};
+    for (const date of (blocked.specific ?? [])) {
+      capacity_overrides[date] = 0;
+    }
+    const { blocked_days: _removed, ...rest } = settings as Record<string, unknown>;
+    void _removed;
+    return { ...(rest as Partial<Settings>), capacity_week, capacity_overrides } as Settings;
+  }
+
+  return settings as unknown as Settings;
+}
+
 const DEFAULT_SETTINGS: Settings = {
   shortlist_size: 5,
   session_length_min: 45,
@@ -22,7 +48,11 @@ const DEFAULT_SETTINGS: Settings = {
   reminder_time: '18:00',
   magister_connected: false,
   magister_email: null,
-  blocked_days: { recurring: ['saturday', 'sunday'], specific: [] },
+  capacity_week: {
+    monday: 60, tuesday: 60, wednesday: 60, thursday: 60,
+    friday: 60, saturday: 120, sunday: 0,
+  },
+  capacity_overrides: {},
 };
 
 const DEFAULT_DATA: AppData = {
@@ -33,6 +63,8 @@ const DEFAULT_DATA: AppData = {
   completed_days: [],
   daily_plans: {},
 };
+
+export { WEEKDAY_NAMES, DEFAULT_SETTINGS };
 
 export const useDataStore = create<DataState>((set, get) => ({
   data: null,
@@ -46,13 +78,13 @@ export const useDataStore = create<DataState>((set, get) => ({
         headers: { Authorization: `Bearer ${token}` },
       });
       if (res.ok) {
-        const data = (await res.json()) as AppData;
+        const raw = (await res.json()) as AppData;
+        const migratedSettings = migrateSettings({
+          ...DEFAULT_SETTINGS,
+          ...(raw.settings as unknown as Record<string, unknown>),
+        });
         set({
-          data: {
-            ...DEFAULT_DATA,
-            ...data,
-            settings: { ...DEFAULT_SETTINGS, ...data.settings },
-          },
+          data: { ...DEFAULT_DATA, ...raw, settings: migratedSettings },
           isLoading: false,
         });
       } else {
@@ -72,7 +104,7 @@ export const useDataStore = create<DataState>((set, get) => ({
         body: JSON.stringify(data),
       });
     } catch {
-      // Sync failure is non-fatal in the foundation scaffold.
+      // Sync failure is non-fatal.
     }
   },
 

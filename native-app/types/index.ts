@@ -38,15 +38,18 @@ export interface Settings {
   magister_connected: boolean;
   magister_email: string | null;
   name?: string;
-  blocked_days: {
-    recurring: string[];
-    specific: string[];
-  };
+  capacity_week: Record<string, number>;
+  capacity_overrides: Record<string, number>;
+}
+
+export interface ZoneThresholds {
+  thresholdRed: number;
+  thresholdGreen: number;
 }
 
 export interface CheckinData {
   energy: 'low' | 'normal' | 'high' | null;
-  time: 'low' | 'normal' | 'high' | null;
+  selectedMinutes: number | null;
   date: string;
 }
 
