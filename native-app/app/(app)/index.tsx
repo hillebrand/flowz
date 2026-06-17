@@ -2,7 +2,8 @@ import { ScrollView, Text, View } from 'react-native';
 
 import { useDataStore } from '@/stores/dataStore';
 import { useSessionStore } from '@/stores/sessionStore';
-import { buildDailyList } from '@/lib/planning';
+import { buildDailyList, isUrgent } from '@/lib/planning';
+import { toLocalDateStr } from '@/lib/dateUtils';
 import type { Task } from '@/types';
 
 const WEEKDAY_NL = ['zondag', 'maandag', 'dinsdag', 'woensdag', 'donderdag', 'vrijdag', 'zaterdag'];
@@ -11,27 +12,17 @@ const MONTH_NL = [
   'juli', 'augustus', 'september', 'oktober', 'november', 'december',
 ];
 
-function isUrgentTask(task: Task): boolean {
-  if (!task.deadline) return false;
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const deadline = new Date(task.deadline + 'T00:00:00');
-  const daysUntil = Math.ceil((deadline.getTime() - today.getTime()) / 86_400_000);
-  const remaining = Math.max(0, task.sessions_total - task.sessions_done);
-  return daysUntil <= remaining && remaining > 0;
-}
-
 function isTomorrowDeadline(task: Task): boolean {
   if (!task.deadline) return false;
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
-  const tomorrowStr = tomorrow.toISOString().slice(0, 10);
+  const tomorrowStr = toLocalDateStr(tomorrow);
   return task.deadline === tomorrowStr;
 }
 
 function borderColor(task: Task): string {
   if (task.status === 'done') return '#BEBEBE';
-  if (isUrgentTask(task)) return '#FFB1B1';
+  if (isUrgent(task)) return '#FFB1B1';
   return '#B1DAFF';
 }
 
@@ -48,9 +39,12 @@ export default function ShortlistScreen() {
 
   const today = new Date();
   const dayLabel = `${WEEKDAY_NL[today.getDay()].toUpperCase()} ${today.getDate()} ${MONTH_NL[today.getMonth()].toUpperCase()}`;
+  const todayStr = toLocalDateStr(today);
 
   const totalSessions = dailyList.reduce((sum, t) => sum + Math.max(0, t.sessions_total - t.sessions_done), 0);
-  const doneSessions = dailyList.reduce((sum, t) => sum + t.sessions_done, 0);
+  const doneSessions = sessionsLog.filter(
+    (s) => s.date === todayStr && dailyList.some((t) => t.id === s.task_id),
+  ).length;
 
   const allDone = dailyList.length > 0 && dailyList.every((t) => t.status === 'done');
   const isEmpty = dailyList.length === 0;
@@ -145,7 +139,7 @@ export default function ShortlistScreen() {
         {/* Task cards */}
         <View className="gap-3">
           {dailyList.map((task) => {
-            const urgent = isUrgentTask(task);
+            const urgent = isUrgent(task);
             const tomorrowDl = isTomorrowDeadline(task);
             const border = borderColor(task);
             return (

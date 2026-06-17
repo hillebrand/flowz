@@ -44,7 +44,7 @@ export default {
     const url = new URL(request.url);
     try {
       if (url.pathname === '/auth'            && request.method === 'POST')   return handleAuth(request, CORS);
-      if (url.pathname === '/homework'        && request.method === 'GET')    return handleHomework(url, CORS);
+      if (url.pathname === '/homework'        && request.method === 'GET')    return handleHomework(url, request, CORS);
       if (url.pathname === '/register'        && request.method === 'POST')   return handleRegister(request, env, CORS);
       if (url.pathname === '/login'           && request.method === 'POST')   return handleLogin(request, env, CORS);
       if (url.pathname === '/forgot-password' && request.method === 'POST')   return handleForgotPassword(request, env, CORS);
@@ -81,7 +81,8 @@ async function handleAuth(request, cors) {
   const cookies = () => [...jar].map(([k, v]) => `${k}=${v}`).join('; ');
 
   // Follow redirects, stop when we hit redirect_callback.html
-  async function follow(url, init = {}) {
+  async function follow(url, init = {}, depth = 0) {
+    if (depth > 10) return json({ error: 'Te veel redirects tijdens authenticatie' }, 502, cors);
     const r = await fetch(url, {
       ...init,
       redirect: 'manual',
@@ -92,7 +93,7 @@ async function handleAuth(request, cors) {
     if (!loc) return r;
     const locUrl = new URL(loc, url);
     if (locUrl.pathname.endsWith('redirect_callback.html')) return r;
-    return follow(locUrl.href);
+    return follow(locUrl.href, {}, depth + 1);
   }
 
   const rand = () =>
@@ -170,12 +171,14 @@ async function handleAuth(request, cors) {
 
 // ─── Homework ────────────────────────────────────────────────────────────────
 
-async function handleHomework(url, cors) {
+async function handleHomework(url, request, cors) {
   const school   = url.searchParams.get('school');
-  const token    = url.searchParams.get('token');
   const personId = url.searchParams.get('person_id');
   const from     = url.searchParams.get('from') ?? today();
   const to       = url.searchParams.get('to')   ?? addDays(today(), 90);
+
+  const authHeader = request.headers.get('Authorization') ?? '';
+  const token = authHeader.replace(/^Bearer\s+/i, '').trim();
 
   if (!school || !token || !personId) return json({ error: 'Missing params' }, 400, cors);
 
@@ -225,15 +228,7 @@ async function handleHomework(url, cors) {
     })
     .sort((a, b) => a.deadline.localeCompare(b.deadline));
 
-  return json({
-    assignments,
-    _debug: {
-      afspraken_total: (afsprRaw.Items ?? []).length,
-      afspraken_matched: fromAppointments.length,
-      opdrachten_total: (opdrRaw.Items ?? []).length,
-      opdrachten_matched: fromAssignments.length,
-    },
-  }, 200, cors);
+  return json({ assignments }, 200, cors);
 }
 
 // ─── User auth ───────────────────────────────────────────────────────────────
@@ -280,6 +275,7 @@ async function resolveToken(request, env) {
 async function handleRegister(request, env, cors) {
   const { email, password } = await request.json();
   if (!email || !password) return json({ error: 'Vul email en wachtwoord in' }, 400, cors);
+  if (password.length < 8) return json({ error: 'Wachtwoord moet minimaal 8 tekens zijn' }, 400, cors);
   const normalizedEmail = email.toLowerCase().trim();
   if (await env.FLOWSTATE_KV.get(`user:${normalizedEmail}`))
     return json({ error: 'Dit e-mailadres is al geregistreerd' }, 409, cors);
@@ -314,7 +310,6 @@ async function handleForgotPassword(request, env, cors) {
     { expirationTtl: 3600 },
   );
 
-  const resetLink = `flowz://reset-password?token=${token}`;
   const webFallback = `https://flowz.pages.dev/00.4-wachtwoord-resetten.html?token=${token}`;
 
   try {

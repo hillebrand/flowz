@@ -83,8 +83,8 @@
 Deze scenario-outlines voeden **Phase 4: UX Design** waar elke pagina krijgt:
 - Gedetailleerde pagina-specificaties
 - Wireframe schetsen
-- Component definities
-- Interactie details
+- Componentdefinities
+- Interactiedetails
 
 ---
 

@@ -1,17 +1,14 @@
 import { create } from 'zustand';
 
-import type { AppData, CheckinData, Settings } from '@/types';
+import type { AppData, Settings } from '@/types';
 
 const WORKER_URL = 'https://flowstate-proxy.flowstate-evelien.workers.dev';
 
 interface DataState {
   data: AppData | null;
-  checkin: CheckinData | null;
   isLoading: boolean;
   fetchData: (token: string) => Promise<void>;
   saveData: (data: AppData, token: string) => Promise<void>;
-  setCheckin: (checkin: CheckinData) => void;
-  getTodayCheckin: () => CheckinData | null;
 }
 
 const WEEKDAY_NAMES = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
@@ -66,9 +63,8 @@ const DEFAULT_DATA: AppData = {
 
 export { WEEKDAY_NAMES, DEFAULT_SETTINGS };
 
-export const useDataStore = create<DataState>((set, get) => ({
+export const useDataStore = create<DataState>((set) => ({
   data: null,
-  checkin: null,
   isLoading: false,
 
   fetchData: async (token) => {
@@ -97,22 +93,10 @@ export const useDataStore = create<DataState>((set, get) => ({
 
   saveData: async (data, token) => {
     set({ data });
-    try {
-      await fetch(`${WORKER_URL}/data`, {
-        method: 'PUT',
-        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-    } catch {
-      // Sync failure is non-fatal.
-    }
-  },
-
-  setCheckin: (checkin) => set({ checkin }),
-
-  getTodayCheckin: () => {
-    const today = new Date().toISOString().slice(0, 10);
-    const checkin = get().checkin;
-    return checkin?.date === today ? checkin : null;
+    await fetch(`${WORKER_URL}/data`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
   },
 }));

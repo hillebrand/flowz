@@ -50,7 +50,7 @@
 
 ---
 
-## Ontwerp Implicaties
+## Ontwerpimplicaties
 
 ### Inhoudsprioriteiten gebaseerd op Drijvende Krachten:
 
@@ -75,7 +75,7 @@
 - Zichtbaar zijn zonder dat Evelien ernaar hoeft te zoeken
 - Vroeg genoeg waarschuwen — niet pas als de deadline morgen is
 - Het verschil tonen tussen "op schema" en "risico"
-- Niet angstig zijn, maar informatief — controleren, niet alarme
+- Niet angstig zijn, maar informatief — controleren, niet alarmerend
 
 **Dagafsluiting / Overzicht moet:**
 - Bevestigen dat de shortlist klaar is

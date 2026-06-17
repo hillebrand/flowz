@@ -60,7 +60,7 @@ Accurate data → betrouwbare capaciteitsplanning → hogere kans op 100% op tij
 ## Kortste Route (Q8)
 
 1. **Taak detail / bewerken** — effort, deadline of complexiteit aanpassen
-2. **Voortgangsinzicht** — updated capaciteitsplanning toont of schema nog haalbaar is ✓
+2. **Voortgangsinzicht** — bijgewerkte capaciteitsplanning toont of schema nog haalbaar is ✓
 
 ---
 
@@ -81,5 +81,5 @@ Accurate data → betrouwbare capaciteitsplanning → hogere kans op 100% op tij
 
 | Stap | Map | Doel | Uitstapactie |
 |------|-----|------|-------------|
-| 03.1 | `03.1-taak-detail-bewerken/` | Taak details inzien en effort/deadline aanpassen | Tikt op "Opslaan" → voortgangsinzicht |
+| 03.1 | `03.1-taak-detail-bewerken/` | Taakdetails inzien en effort/deadline aanpassen | Tikt op "Opslaan" → voortgangsinzicht |
 | 03.2 | `03.2-voortgangsinzicht/` | Controleren of schema nog haalbaar is | Scenario geslaagd ✓ |

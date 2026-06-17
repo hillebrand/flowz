@@ -37,7 +37,7 @@ Zie voor volledig context:
 | 01.4 Taak Aanmaken | `C-UX-Scenarios/01-eveliens-eerste-setup/01.4-taak-aanmaken/01.4-taak-aanmaken.md` | P1 |
 | 01.5 Takenoverzicht | `C-UX-Scenarios/01-eveliens-eerste-setup/01.5-takenoverzicht/01.5-takenoverzicht.md` | P1 |
 
-### Scenario 02 — Dagelijkse Routine (kern gebruik case)
+### Scenario 02 — Dagelijkse Routine (kern use case)
 
 | Pagina | Spec | Prioriteit |
 |--------|------|-----------|

@@ -1,0 +1,7 @@
+{
+  "servers": {
+    "intellij": {
+      "url": "http://localhost:63342/mcp"
+    }
+  }
+}

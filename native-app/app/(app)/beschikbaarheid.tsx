@@ -54,26 +54,30 @@ export default function BeschikbaarheidScreen() {
   const [calMonth, setCalMonth] = useState(today.getMonth());
   const [bottomSheetDate, setBottomSheetDate] = useState<string | null>(null);
   const [bottomSheetMinutes, setBottomSheetMinutes] = useState(60);
-  const [showToast, setShowToast] = useState(false);
+  const [showToast, setShowToast] = useState<'saved' | 'error' | false>(false);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  function triggerToast() {
+  function triggerToast(type: 'saved' | 'error') {
     if (toastTimer.current) clearTimeout(toastTimer.current);
-    setShowToast(true);
+    setShowToast(type);
     toastTimer.current = setTimeout(() => setShowToast(false), 1500);
   }
 
   useEffect(() => () => { if (toastTimer.current) clearTimeout(toastTimer.current); }, []);
 
   const persistSettings = useCallback(
-    (partialSettings: Partial<typeof settings>) => {
+    async (partialSettings: Partial<typeof settings>) => {
       if (!data || !token) return;
       const updated: AppData = {
         ...data,
         settings: { ...settings, ...partialSettings },
       };
-      saveData(updated, token);
-      triggerToast();
+      try {
+        await saveData(updated, token);
+        triggerToast('saved');
+      } catch {
+        triggerToast('error');
+      }
     },
     [data, settings, token, saveData],
   );
@@ -81,7 +85,7 @@ export default function BeschikbaarheidScreen() {
   function updateWeekDay(dayKey: string, delta: number) {
     const current = capacityWeek[dayKey] ?? 60;
     const next = Math.max(0, Math.min(300, current + delta));
-    persistSettings({ capacity_week: { ...capacityWeek, [dayKey]: next } });
+    void persistSettings({ capacity_week: { ...capacityWeek, [dayKey]: next } });
   }
 
   function openDayPicker(dateStr: string) {
@@ -97,14 +101,14 @@ export default function BeschikbaarheidScreen() {
 
   function saveOverride() {
     if (!bottomSheetDate) return;
-    persistSettings({
+    void persistSettings({
       capacity_overrides: { ...capacityOverrides, [bottomSheetDate]: bottomSheetMinutes },
     });
     setBottomSheetDate(null);
   }
 
   function clearAllOverrides() {
-    persistSettings({ capacity_overrides: {} });
+    void persistSettings({ capacity_overrides: {} });
   }
 
   function prevMonth() {
@@ -297,13 +301,13 @@ export default function BeschikbaarheidScreen() {
       </ScrollView>
 
       {/* Save toast */}
-      {showToast && (
+      {showToast !== false && (
         <View
           style={{
             position: 'absolute',
             top: 80,
             alignSelf: 'center',
-            backgroundColor: '#1f2937',
+            backgroundColor: showToast === 'error' ? '#991b1b' : '#1f2937',
             borderRadius: 20,
             paddingHorizontal: 16,
             paddingVertical: 8,
@@ -313,7 +317,7 @@ export default function BeschikbaarheidScreen() {
             className="text-xs text-white"
             style={{ fontFamily: 'Karla_400Regular' }}
           >
-            ✓ Opgeslagen
+            {showToast === 'error' ? '✗ Opslaan mislukt' : '✓ Opgeslagen'}
           </Text>
         </View>
       )}

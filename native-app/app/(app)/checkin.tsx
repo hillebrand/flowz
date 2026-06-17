@@ -2,8 +2,6 @@ import { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { router } from 'expo-router';
 
-import { useDataStore } from '@/stores/dataStore';
-
 type Energy = 'low' | 'normal' | 'high';
 
 const OPTIONS: { value: Energy; label: string; sub: string }[] = [
@@ -14,15 +12,9 @@ const OPTIONS: { value: Energy; label: string; sub: string }[] = [
 
 export default function CheckinScreen() {
   const [selected, setSelected] = useState<Energy | null>(null);
-  const setCheckin = useDataStore((state) => state.setCheckin);
 
   function confirm() {
     if (!selected) return;
-    setCheckin({
-      energy: selected,
-      selectedMinutes: null,
-      date: new Date().toISOString().slice(0, 10),
-    });
     router.replace('/(app)/tijdkeuze' as never);
   }
 

@@ -113,7 +113,7 @@ De volgende wijzigingen zijn toevoegingen op pagina's gebouwd in WO-001.
 ### Beschikbaarheid (P2)
 - [ ] 04.2 toegankelijk via link in 04.1
 - [ ] Weekdag toggles laden bestaande `blocked_days.recurring` waarden; wijzigingen persistent opgeslagen
-- [ ] Kalender toont huidige maand; tik op dag blokkeert/deblokkeer; opgeslagen in `blocked_days.specific`
+- [ ] Kalender toont huidige maand; tik op dag blokkeert/deblokkeert; opgeslagen in `blocked_days.specific`
 - [ ] Maandnavigatie werkt (max. 6 maanden vooruit; geen verleden)
 - [ ] "Clear all specific dates" met bevestiging verwijdert alle eenmalige datums
 - [ ] Planningsalgoritme (`FS.getCapacityWarning`) houdt rekening met bijgewerkte geblokkeerde dagen

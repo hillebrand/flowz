@@ -25,7 +25,6 @@ export interface Task {
   recurring_interval?: number;
   last_completed?: string | null;
   session_duration_min?: number;
-  task_type?: string;
   type?: string;
 }
 

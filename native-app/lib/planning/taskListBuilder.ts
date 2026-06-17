@@ -1,4 +1,5 @@
 import type { Task, SessionLog } from '@/types';
+import { toLocalDateStr } from '../dateUtils';
 
 type Zone = 'red' | 'orange' | 'green';
 
@@ -12,7 +13,7 @@ function getUrgencyScore(task: Task): number {
   return remaining / Math.max(1, daysUntil);
 }
 
-function isUrgent(task: Task): boolean {
+export function isUrgent(task: Task): boolean {
   if (!task.deadline) return false;
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -23,7 +24,7 @@ function isUrgent(task: Task): boolean {
 }
 
 function hasSessionToday(taskId: string, sessionsLog: SessionLog[]): boolean {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = toLocalDateStr();
   return sessionsLog.some((s) => s.task_id === taskId && s.date === today);
 }
 

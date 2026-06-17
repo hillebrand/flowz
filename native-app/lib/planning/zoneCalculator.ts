@@ -1,4 +1,5 @@
 import type { Task, Settings, ZoneThresholds } from '@/types';
+import { toLocalDateStr } from '../dateUtils';
 import { getCapacityForDate } from './capacityResolver';
 
 const LOOKAHEAD_DAYS = 14;
@@ -7,14 +8,14 @@ const GREEN_MULTIPLIER = 1.25;
 export function calculateZones(tasks: Task[], settings: Settings, date: Date): ZoneThresholds {
   const today = new Date(date);
   today.setHours(0, 0, 0, 0);
-  const todayStr = today.toISOString().slice(0, 10);
+  const todayStr = toLocalDateStr(today);
 
   // Build a capacity map for the next LOOKAHEAD_DAYS days
   const capacityMap: Record<string, number> = {};
   for (let i = 0; i <= LOOKAHEAD_DAYS; i++) {
     const d = new Date(today);
     d.setDate(today.getDate() + i);
-    const key = d.toISOString().slice(0, 10);
+    const key = toLocalDateStr(d);
     capacityMap[key] = getCapacityForDate(settings, d);
   }
 

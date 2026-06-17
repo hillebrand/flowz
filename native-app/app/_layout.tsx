@@ -1,4 +1,5 @@
 import { useEffect } from 'react';
+import { ActivityIndicator, View } from 'react-native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts, Karla_400Regular, Karla_500Medium, Karla_600SemiBold, Karla_700Bold } from '@expo-google-fonts/karla';
@@ -20,7 +21,7 @@ export default function RootLayout() {
   }, [loadToken]);
 
   if (!fontsLoaded) {
-    return null;
+    return <View className="flex-1 bg-white" />;
   }
 
   return (

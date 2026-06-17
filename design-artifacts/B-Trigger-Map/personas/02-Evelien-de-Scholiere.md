@@ -111,7 +111,7 @@ FlowState is voor haar gebouwd om die drempel weg te nemen: de app denkt voor ha
 - Beschrijving: De concrete consequentie — verlies van punten, aandacht van de leraar, sociale druk
 - Waarom het haar beangstigt: Zichtbare schade — iedereen ziet het. Leraar ziet het. Ouders zien het.
 - Falen ziet er zo uit: Een negatieve aantekening in Magister, een gesprek met de leraar
-- **FlowState Antwoord:** Vooruitkijkende capaciteitsplanning + escalatie-indicator zorg dat ze altijd op schema is
+- **FlowState Antwoord:** Vooruitkijkende capaciteitsplanning + escalatie-indicator zorgt dat ze altijd op schema is
 
 **3. 's Avonds ontdekken dat een taak veel groter is dan gedacht**
 - Beschrijving: Ze plant een uur in maar de taak blijkt drie uur te zijn
@@ -141,7 +141,7 @@ FlowState is voor haar gebouwd om die drempel weg te nemen: de app denkt voor ha
 **Zelfperceptie:**
 - Ziet zichzelf als iemand die het niet goed organiseert
 - Voelt zich schuldig als ze uitstelt
-- Denkt dat het aan haar zelf ligt, niet aan het gebrek aan een goed systeem
+- Denkt dat het aan haarzelf ligt, niet aan het gebrek aan een goed systeem
 
 ---
 

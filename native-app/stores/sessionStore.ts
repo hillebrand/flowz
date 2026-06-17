@@ -1,5 +1,7 @@
 import { create } from 'zustand';
 
+import { toLocalDateStr } from '@/lib/dateUtils';
+
 type Zone = 'red' | 'orange' | 'green';
 
 interface SessionState {
@@ -26,6 +28,6 @@ export const useSessionStore = create<SessionState>((set) => ({
     set({
       selectedMinutes: minutes,
       selectedZone: zone,
-      checkinDate: new Date().toISOString().slice(0, 10),
+      checkinDate: toLocalDateStr(),
     }),
 }));
