@@ -1,5 +1,15 @@
-# WDS Sprint Planning / Product Evolution (Fase 8)
+# WDS Status / Progress
 
-Saga geactiveerd om de volgende set WDS-vereisten in kaart te brengen. 
+**Datum:** 2026-06-17  
+**Status:** Gestopt voor vandaag
 
-De scope is de vertaalslag van de overige schermen uit het `design-artifacts/E-Development/prototype` naar de `native-app` repository (fase 5), evenals eventuele Fase 2 features uit de Product Brief (zoals Gamification en Magister Sync).
+## Voltooid:
+- Migratie van Prototype (HTML/JS) naar Native App (`native-app/`) voor:
+  - WO-001 t/m WO-003 features (check-in, shortlist, tijdplanning slider).
+  - WO-004: Pomodoro flow en Taak Detail pagina.
+  - WO-005: Setup flow (Welkomst, Magister sync mock, Import, Aanmaken) en Instellingen.
+- Native code is getypt, gestyled (NativeWind) en succesvol door `tsc --noEmit` gekomen. Alle wijzigingen zijn in Git vastgelegd.
+
+## Volgende stappen (voor "morgen"):
+- Nieuwe work orders via Freya (UX) of Saga (Analyst).  
+  Mogelijke kandidaten vanuit Fase 2: **Gamification** of de daadwerkelijke **Magister-koppeling**.
