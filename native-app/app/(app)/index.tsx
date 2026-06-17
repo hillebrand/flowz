@@ -1,4 +1,5 @@
-import { ScrollView, Text, View } from 'react-native';
+import { router } from "expo-router";
+import { ScrollView, Text, View, Pressable } from 'react-native';
 
 import { useDataStore } from '@/stores/dataStore';
 import { useSessionStore } from '@/stores/sessionStore';
@@ -143,8 +144,8 @@ export default function ShortlistScreen() {
             const tomorrowDl = isTomorrowDeadline(task);
             const border = borderColor(task);
             return (
-              <View
-                key={task.id}
+              <Pressable
+                key={task.id} onPress={() => router.push(`/(app)/taak-detail/${task.id}`)}
                 className="rounded-xl bg-white px-4 py-3"
                 style={{
                   borderLeftWidth: 4,
@@ -190,7 +191,7 @@ export default function ShortlistScreen() {
                     </Text>
                   )}
                 </View>
-              </View>
+              </Pressable>
             );
           })}
         </View>
