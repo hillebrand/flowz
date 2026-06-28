@@ -38,8 +38,7 @@
 
     <div class="slide-up bg-gray-50 rounded-2xl px-5 py-4 w-full mb-4">
       <p id="sessie-afgerond-bevestiging-compliment"
-         class="text-lg font-bold text-gray-900 mb-1 leading-snug"></p>
-      <p id="sessie-afgerond-xp" class="text-sm font-semibold text-indigo-500"></p>
+         class="text-lg font-bold text-gray-900 leading-snug"></p>
     </div>
 
     <p id="sessie-afgerond-bevestiging-sessie-context"
@@ -87,7 +86,6 @@
 
       document.getElementById('sessie-afgerond-bevestiging-compliment').textContent =
         FS.getCompletionCompliment();
-      document.getElementById('sessie-afgerond-xp').textContent = '+10 XP ⚡';
 
       document.getElementById('sessie-afgerond-bevestiging-sessie-context').textContent =
         `${task.title} · Sessie ${done} van ${total}`;

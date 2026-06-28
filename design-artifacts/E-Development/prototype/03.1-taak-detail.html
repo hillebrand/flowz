@@ -399,7 +399,7 @@
       if (!data.study_days) data.study_days = [];
       if (!data.study_days.includes(today)) data.study_days.push(today);
       FS.saveData(data);
-      FS.showToast(FS.getCompletionCompliment() + ' +10 XP ⚡');
+      FS.showToast(FS.getCompletionCompliment());
       renderTask();
     }
 

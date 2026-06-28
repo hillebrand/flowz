@@ -38,26 +38,6 @@
            class="text-sm text-gray-400"></div>
     </div>
 
-    <!-- Section: Level & XP -->
-    <div class="bg-white rounded-2xl px-5 py-5 shadow-sm border border-gray-100 mb-5">
-      <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">Jouw niveau</h3>
-      <div class="flex items-center gap-3 mb-3">
-        <div id="xp-level-badge"
-             class="text-xs font-bold px-3 py-1 rounded-full bg-primary/10 text-primary"></div>
-        <div id="xp-amount" class="text-sm text-gray-400"></div>
-      </div>
-      <div id="xp-next-wrap" class="">
-        <div class="flex justify-between text-xs text-gray-400 mb-1">
-          <span id="xp-next-label"></span>
-          <span id="xp-pct"></span>
-        </div>
-        <div class="h-2 bg-gray-100 rounded-full overflow-hidden">
-          <div id="xp-bar" class="h-full bg-primary rounded-full transition-all"></div>
-        </div>
-      </div>
-      <div id="xp-max-label" class="hidden text-xs text-gray-400 mt-1">Hoogste niveau bereikt! 🏆</div>
-    </div>
-
   </main>
 
   <script>
@@ -140,21 +120,6 @@
       document.getElementById('voortgangsinzicht-totaalteller-totaalsessies-label').textContent =
         `studiesessie${total !== 1 ? 's' : ''} voltooid`;
 
-      // ── XP & level ───────────────────────────────────────────────────────────
-      const xp  = FS.calcXP(data.sessions_log);
-      const lvl = FS.getLevel(xp);
-      document.getElementById('xp-level-badge').textContent = `Level ${lvl.level} — ${lvl.name}`;
-      document.getElementById('xp-amount').textContent = `${xp} XP`;
-      if (lvl.nextLevel) {
-        document.getElementById('xp-next-label').textContent =
-          `Volgende: Level ${lvl.nextLevel.level} ${lvl.nextLevel.name}`;
-        document.getElementById('xp-pct').textContent = `${lvl.progress}%`;
-        document.getElementById('xp-bar').style.width = `${lvl.progress}%`;
-      } else {
-        document.getElementById('xp-next-wrap').classList.add('hidden');
-        document.getElementById('xp-max-label').classList.remove('hidden');
-        document.getElementById('xp-bar').style.width = '100%';
-      }
     })();
   </script>
 </body>

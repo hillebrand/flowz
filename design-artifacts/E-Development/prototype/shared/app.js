@@ -743,30 +743,6 @@ function getCompletionCompliment() {
   return _COMPLIMENTS[Math.floor(Math.random() * _COMPLIMENTS.length)];
 }
 
-const XP_PER_SESSION = 10;
-const LEVELS = [
-  { level: 1, name: 'Beginner',     minXP: 0   },
-  { level: 2, name: 'Leerling',     minXP: 50  },
-  { level: 3, name: 'Studeer-held', minXP: 150 },
-  { level: 4, name: 'Kenner',       minXP: 300 },
-  { level: 5, name: 'Meester',      minXP: 500 },
-];
-
-function calcXP(sessions_log) {
-  return (sessions_log || []).length * XP_PER_SESSION;
-}
-
-function getLevel(xp) {
-  let current = LEVELS[0];
-  for (const l of LEVELS) { if (xp >= l.minXP) current = l; }
-  const nextIdx = LEVELS.findIndex(l => l.level === current.level) + 1;
-  const next = LEVELS[nextIdx] || null;
-  const progress = next
-    ? Math.min(100, Math.round(((xp - current.minXP) / (next.minXP - current.minXP)) * 100))
-    : 100;
-  return { ...current, xp, nextLevel: next, progress };
-}
-
 function showConfetti() {
   const canvas = document.createElement('canvas');
   canvas.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:9998;pointer-events:none';
@@ -872,14 +848,8 @@ function showComplimentSheet(compliment, xp) {
   style.textContent = `
     @keyframes fs-sheet-up   { from { transform:translateY(100%) } to { transform:translateY(0) } }
     @keyframes fs-sheet-down { from { transform:translateY(0) }     to { transform:translateY(110%) } }
-    @keyframes fs-xp-pop {
-      0%   { transform: scale(0.5) translateY(8px); opacity:0; }
-      60%  { transform: scale(1.2) translateY(-4px); opacity:1; }
-      100% { transform: scale(1)   translateY(0);   opacity:1; }
-    }
     #fs-compliment-sheet { animation: fs-sheet-up 0.4s cubic-bezier(.22,.68,0,1.4) forwards; }
     #fs-compliment-sheet.closing { animation: fs-sheet-down 0.35s ease-in forwards; }
-    .fs-xp   { display:inline-block; animation: fs-xp-pop 0.5s cubic-bezier(.22,.68,0,1.4) 0.3s both; }
   `;
   document.head.appendChild(style);
 
@@ -895,8 +865,7 @@ function showComplimentSheet(compliment, xp) {
 
   sheet.innerHTML = `
     <div style="width:40px;height:4px;background:#e5e7eb;border-radius:2px;margin:0 auto 20px"></div>
-    <p style="font-size:20px;font-weight:700;color:#111827;margin:0 0 6px;line-height:1.3">${compliment}</p>
-    ${xp ? `<p class="fs-xp fs-xp-primary" style="font-size:15px;font-weight:600;margin-bottom:24px">${xp}</p>` : '<div style="height:24px"></div>'}
+    <p style="font-size:20px;font-weight:700;color:#111827;margin:0 0 24px;line-height:1.3">${compliment}</p>
     <button id="fs-compliment-ok"
       style="width:100%;background:#111827;color:#fff;font-weight:700;font-size:16px;padding:16px;border:none;border-radius:16px;cursor:pointer;font-family:inherit">
       Nice, door! 🔥
@@ -950,7 +919,7 @@ window.FS = {
   getCapacityWarning, getCapacityPressuredTaskIds,
   getActiveSession, setActiveSession, clearActiveSession,
   getDayKey,
-  getCompletionCompliment, calcXP, getLevel,
+  getCompletionCompliment,
   showToast, showComplimentSheet, showConfetti, saveTodayPlan, loadTodayPlan,
   getGreeting,
   navigate,
