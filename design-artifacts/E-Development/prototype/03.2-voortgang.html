@@ -23,29 +23,6 @@
 
   <main class="flex-1 px-4 py-6 max-w-sm mx-auto w-full">
 
-    <!-- Section: Streak -->
-    <div class="bg-white rounded-2xl px-5 py-5 shadow-sm border border-gray-100 mb-5 flex items-center gap-4">
-      <div id="voortgangsinzicht-streak-vuuremoji" class="text-4xl"></div>
-      <div class="flex-1">
-        <div id="voortgangsinzicht-streak-streak-teller"
-             class="text-2xl font-bold text-gray-900"></div>
-        <div id="voortgangsinzicht-streak-streak-label"
-             class="text-sm text-gray-400"></div>
-        <!-- Next milestone progress -->
-        <div id="milestone-progress-wrap" class="hidden mt-2">
-          <div class="flex justify-between text-xs text-gray-400 mb-1">
-            <span id="milestone-progress-label"></span>
-            <span id="milestone-progress-pct"></span>
-          </div>
-          <div class="h-1.5 bg-gray-100 rounded-full overflow-hidden">
-            <div id="milestone-progress-bar" class="h-full bg-primary rounded-full transition-all"></div>
-          </div>
-        </div>
-      </div>
-      <!-- Milestone badge -->
-      <div id="milestone-badge" class="hidden bg-primary/10 text-primary text-xs px-3 py-1.5 rounded-full font-semibold text-center"></div>
-    </div>
-
     <!-- Section: Weekoverzicht -->
     <div class="bg-white rounded-2xl px-5 py-5 shadow-sm border border-gray-100 mb-5">
       <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-4">Deze week</h3>
@@ -89,44 +66,12 @@
     (async function() {
       const data = await FS.initData();
 
-      // ── Streak ──────────────────────────────────────────────────────────────
-      const { streak, studiedToday } = FS.getStreakStatus(data.completed_days || [], data.settings || {});
-      const emojiEl = document.getElementById('voortgangsinzicht-streak-vuuremoji');
-      emojiEl.textContent = '🔥';
-      document.getElementById('voortgangsinzicht-streak-streak-teller').textContent =
-        `${streak} dag${streak !== 1 ? 'en' : ''}`;
-      document.getElementById('voortgangsinzicht-streak-streak-label').textContent =
-        FS.getStreakMessage(streak, studiedToday);
-
-      // Milestone badge
-      const milestones = [3, 5, 7, 14, 21, 30, 50, 100];
-      const hitMilestone = milestones.find(m => streak === m);
-      if (hitMilestone) {
-        const badge = document.getElementById('milestone-badge');
-        badge.textContent = `🏆 ${hitMilestone}-daagse\nmijlpaal!`;
-        badge.classList.remove('hidden');
-      }
-
-      // Next milestone progress bar
-      const nextMilestone = milestones.find(m => m > streak);
-      if (nextMilestone && !hitMilestone) {
-        const prevMilestone = [...milestones].reverse().find(m => m <= streak) ?? 0;
-        const pct = Math.round(((streak - prevMilestone) / (nextMilestone - prevMilestone)) * 100);
-        document.getElementById('milestone-progress-wrap').classList.remove('hidden');
-        document.getElementById('milestone-progress-label').textContent =
-          `Naar ${nextMilestone}-daagse mijlpaal`;
-        document.getElementById('milestone-progress-pct').textContent = `${streak}/${nextMilestone}`;
-        document.getElementById('milestone-progress-bar').style.width = `${pct}%`;
-      }
-
       // ── Week overview ────────────────────────────────────────────────────────
       const todayStr     = FS.getDayKey();
       const days         = ['Ma', 'Di', 'Wo', 'Do', 'Vr', 'Za', 'Zo'];
       const completedSet = new Set(data.completed_days || []);
       const sessionsLog  = data.sessions_log || [];
       const dailyPlans   = data.daily_plans  || {};
-      const blockedSpec  = new Set(data.settings?.blocked_days?.specific  || []);
-      const blockedRec   = new Set(data.settings?.blocked_days?.recurring || ['saturday', 'sunday']);
 
       // Read active plan for today from localStorage to recover original task list
       const todayPlan = (() => {
@@ -134,9 +79,7 @@
       })();
 
       function isDayBlocked(ds) {
-        if (blockedSpec.has(ds)) return true;
-        const dow = new Date(ds + 'T12:00:00').toLocaleDateString('en', { weekday: 'long' }).toLowerCase();
-        return blockedRec.has(dow);
+        return FS.getCapacityForDate(data.settings || {}, new Date(ds + 'T12:00:00')) === 0;
       }
 
       const now = new Date();

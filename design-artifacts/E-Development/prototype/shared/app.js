@@ -727,52 +727,7 @@ function clearActiveSession() {
 
 
 
-function calcStreak(completedDays, settings) {
-  return getStreakStatus(completedDays, settings).streak;
-}
-
-// Returns { streak, studiedToday }.
-// A day counts only when it is in completedDays (ALL required tasks done).
-// Blocked days (recurring weekdays or specific dates) are skipped — they
-// neither count nor break the streak.
-function getStreakStatus(completedDays, settings) {
-  const completed = new Set(completedDays || []);
-
-  function isBlocked(dateStr) {
-    return getCapacityForDate(settings, new Date(dateStr + 'T12:00:00')) === 0;
-  }
-
-  const todayStr    = getDayKey();
-  const studiedToday = completed.has(todayStr);
-
-  // Grace period: if today not yet done, start counting from yesterday
-  let checkMs = studiedToday
-    ? new Date(`${todayStr}T12:00:00`).getTime()
-    : new Date(`${todayStr}T12:00:00`).getTime() - 86400000;
-
-  let streak = 0;
-  for (let i = 0; i < 365; i++) {
-    const dayStr = getDayKey(new Date(checkMs));
-    if (isBlocked(dayStr)) {
-      checkMs -= 86400000;
-      continue;
-    }
-    if (completed.has(dayStr)) {
-      streak++;
-      checkMs -= 86400000;
-    } else {
-      break;
-    }
-  }
-  return { streak, studiedToday };
-}
-
 // ── Gamification ─────────────────────────────────────────────────────────────
-
-function getStreakMessage(streak, studiedToday) {
-  if (studiedToday && streak > 0) return `Een streak van ${streak} dag${streak !== 1 ? 'en' : ''}, ga zo door`;
-  return 'Studeer vandaag om je streak te behouden';
-}
 
 const _COMPLIMENTS = [
   'Slay! Weer een sessie erop 🎉',
@@ -995,7 +950,6 @@ window.FS = {
   getCapacityWarning, getCapacityPressuredTaskIds,
   getActiveSession, setActiveSession, clearActiveSession,
   getDayKey,
-  calcStreak, getStreakStatus, getStreakMessage,
   getCompletionCompliment, calcXP, getLevel,
   showToast, showComplimentSheet, showConfetti, saveTodayPlan, loadTodayPlan,
   getGreeting,
