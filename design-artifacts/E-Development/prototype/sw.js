@@ -17,7 +17,6 @@ const PRECACHE = [
   '02.1-energie-check-in.html',
   '02.2-shortlist-vandaag.html',
   '03.1-taak-detail.html',
-  '03.2-voortgang.html',
   '03.3-sessie-voorbereiding.html',
   '03.4-actieve-sessie.html',
   '03.5-sessie-afgerond.html',
