@@ -6,6 +6,28 @@ const ENERGY_KEY = 'flowz_energy_today';
 const SETUP_KEY = 'flowz_setup_done';
 const DATA_VERSION = 3; // bump to reset stored data on breaking changes
 
+// ── Settings migration ────────────────────────────────────────────────────────
+// Migrates old blocked_days model to capacity_week + capacity_overrides.
+function _migrateSettingsIfNeeded(data) {
+  if (!data || !data.settings) return data;
+  const s = data.settings;
+  if ('capacity_week' in s) return data; // already migrated
+  if (!('blocked_days' in s)) return data; // nothing to migrate
+
+  const defaultWeek = { monday:60, tuesday:60, wednesday:60, thursday:60, friday:60, saturday:120, sunday:0 };
+  const capacity_week = { ...defaultWeek };
+  for (const day of (s.blocked_days?.recurring || [])) {
+    if (day in capacity_week) capacity_week[day] = 0;
+  }
+  const capacity_overrides = {};
+  for (const date of (s.blocked_days?.specific || [])) {
+    capacity_overrides[date] = 0;
+  }
+  const { blocked_days: _removed, ...rest } = s;
+  data.settings = { ...rest, capacity_week, capacity_overrides };
+  return data;
+}
+
 // ── Themes ────────────────────────────────────────────────────────────────────
 
 const THEMES = {
@@ -129,7 +151,7 @@ document.addEventListener('visibilitychange', async () => {
 
 // ── Load / Save ──────────────────────────────────────────────────────────────
 
-const DEMO_DATA = {"tasks":[{"id":"t1","task_type":"Opdracht","title":"Essay Engels","subject":"English","description":"Schrijf een betoog van minimaal 500 woorden over klimaatverandering. Gebruik minstens 3 bronnen en voeg een bronnenlijst toe.","deadline":"2026-06-02","sessions_total":3,"sessions_done":1,"complexity":"high","priority":"high","subtasks":[{"id":"s1","title":"Bronnen zoeken","done":true},{"id":"s2","title":"Opzet schrijven","done":false},{"id":"s3","title":"Essay schrijven","done":false},{"id":"s4","title":"Nalezen","done":false}],"materials":["leerboek","aantekeningen"],"status":"in_progress","source":"magister","magister_id":"mg_001","created_at":"2026-05-23"},{"id":"t2","task_type":"Huiswerk","title":"Wiskundeopgaven hoofdstuk 5","subject":"Math","description":"Opgaven 5.1 t/m 5.4 — vectoren en matrices. Let op: toon altijd de tussenberekening.","deadline":"2026-06-04","sessions_total":2,"sessions_done":0,"complexity":"medium","priority":"normal","subtasks":[{"id":"s8","title":"Paragraaf 5.1 en 5.2","done":false},{"id":"s9","title":"Paragraaf 5.3 en 5.4","done":false}],"materials":["rekenmachine","schrift"],"status":"pending","source":"magister","magister_id":"mg_002","created_at":"2026-05-23"},{"id":"t3","task_type":"Opdracht","title":"Samenvatting Geschiedenis hfst 8","subject":"History","description":"Samenvatting van hoofdstuk 8: De Tweede Wereldoorlog. Maximaal 2 A4. Gebruik de koppen uit het boek als structuur.","deadline":"2026-06-06","sessions_total":1,"sessions_done":0,"complexity":"low","priority":"normal","subtasks":[],"materials":["leerboek"],"status":"pending","source":"magister","magister_id":"mg_003","created_at":"2026-05-23"},{"id":"t4","task_type":"Werkstuk","title":"Biologie werkstuk — ecosystemen","subject":"Biology","description":"Kies een ecosysteem naar keuze en beschrijf voedselketens, producenten, consumenten en decomposers. Minimaal 4 pagina's inclusief afbeeldingen.","deadline":"2026-06-13","sessions_total":4,"sessions_done":0,"complexity":"high","priority":"low","subtasks":[{"id":"s5","title":"Ecosysteem kiezen","done":false},{"id":"s6","title":"Onderzoek doen","done":false},{"id":"s7","title":"Verslag schrijven","done":false}],"materials":["leerboek"],"status":"pending","source":"manual","magister_id":null,"created_at":"2026-05-23"},{"id":"t5","task_type":"Proefwerk","title":"Toets Scheikunde — hoofdstuk 6","subject":"Chemistry","description":"Leer atoombouw, moleculen en chemische bindingen. Maak ook de oefentoets achter in het boek.","deadline":"2026-05-30","sessions_total":2,"sessions_done":0,"complexity":"high","priority":"high","subtasks":[{"id":"s10","title":"Atoombouw herhalen","done":false},{"id":"s11","title":"Oefentoets maken","done":false}],"materials":["leerboek","aantekeningen","woordenlijst"],"status":"pending","source":"magister","magister_id":"mg_005","created_at":"2026-05-24"},{"id":"t6","task_type":"Opdracht","title":"Boekverslag Nederlands","subject":"Dutch","description":"Boekverslag over 'De aanslag' van Harry Mulisch. Gebruik het format van de docent (zie Magister).","deadline":"2026-06-19","sessions_total":3,"sessions_done":0,"complexity":"medium","priority":"normal","subtasks":[{"id":"s12","title":"Boek uitlezen","done":false},{"id":"s13","title":"Aantekeningen verwerken","done":false},{"id":"s14","title":"Verslag schrijven","done":false}],"materials":["boek 'De aanslag'"],"status":"pending","source":"magister","magister_id":"mg_006","created_at":"2026-05-24"}],"settings":{"shortlist_size":5,"session_length_min":45,"break_length_min":10,"reminder_enabled":true,"reminder_time":"18:00","magister_connected":false,"magister_email":null,"blocked_days":{"recurring":["saturday","sunday"],"specific":[]}},"sessions_log":[{"task_id":"t1","date":"2026-05-22"}],"study_days":["2026-05-19","2026-05-20","2026-05-21","2026-05-22","2026-05-23"]};
+const DEMO_DATA = {"tasks":[{"id":"t1","task_type":"Opdracht","title":"Essay Engels","subject":"English","description":"Schrijf een betoog van minimaal 500 woorden over klimaatverandering. Gebruik minstens 3 bronnen en voeg een bronnenlijst toe.","deadline":"2026-06-02","sessions_total":3,"sessions_done":1,"complexity":"high","priority":"high","subtasks":[{"id":"s1","title":"Bronnen zoeken","done":true},{"id":"s2","title":"Opzet schrijven","done":false},{"id":"s3","title":"Essay schrijven","done":false},{"id":"s4","title":"Nalezen","done":false}],"materials":["leerboek","aantekeningen"],"status":"in_progress","source":"magister","magister_id":"mg_001","created_at":"2026-05-23"},{"id":"t2","task_type":"Huiswerk","title":"Wiskundeopgaven hoofdstuk 5","subject":"Math","description":"Opgaven 5.1 t/m 5.4 — vectoren en matrices. Let op: toon altijd de tussenberekening.","deadline":"2026-06-04","sessions_total":2,"sessions_done":0,"complexity":"medium","priority":"normal","subtasks":[{"id":"s8","title":"Paragraaf 5.1 en 5.2","done":false},{"id":"s9","title":"Paragraaf 5.3 en 5.4","done":false}],"materials":["rekenmachine","schrift"],"status":"pending","source":"magister","magister_id":"mg_002","created_at":"2026-05-23"},{"id":"t3","task_type":"Opdracht","title":"Samenvatting Geschiedenis hfst 8","subject":"History","description":"Samenvatting van hoofdstuk 8: De Tweede Wereldoorlog. Maximaal 2 A4. Gebruik de koppen uit het boek als structuur.","deadline":"2026-06-06","sessions_total":1,"sessions_done":0,"complexity":"low","priority":"normal","subtasks":[],"materials":["leerboek"],"status":"pending","source":"magister","magister_id":"mg_003","created_at":"2026-05-23"},{"id":"t4","task_type":"Werkstuk","title":"Biologie werkstuk — ecosystemen","subject":"Biology","description":"Kies een ecosysteem naar keuze en beschrijf voedselketens, producenten, consumenten en decomposers. Minimaal 4 pagina's inclusief afbeeldingen.","deadline":"2026-06-13","sessions_total":4,"sessions_done":0,"complexity":"high","priority":"low","subtasks":[{"id":"s5","title":"Ecosysteem kiezen","done":false},{"id":"s6","title":"Onderzoek doen","done":false},{"id":"s7","title":"Verslag schrijven","done":false}],"materials":["leerboek"],"status":"pending","source":"manual","magister_id":null,"created_at":"2026-05-23"},{"id":"t5","task_type":"Proefwerk","title":"Toets Scheikunde — hoofdstuk 6","subject":"Chemistry","description":"Leer atoombouw, moleculen en chemische bindingen. Maak ook de oefentoets achter in het boek.","deadline":"2026-05-30","sessions_total":2,"sessions_done":0,"complexity":"high","priority":"high","subtasks":[{"id":"s10","title":"Atoombouw herhalen","done":false},{"id":"s11","title":"Oefentoets maken","done":false}],"materials":["leerboek","aantekeningen","woordenlijst"],"status":"pending","source":"magister","magister_id":"mg_005","created_at":"2026-05-24"},{"id":"t6","task_type":"Opdracht","title":"Boekverslag Nederlands","subject":"Dutch","description":"Boekverslag over 'De aanslag' van Harry Mulisch. Gebruik het format van de docent (zie Magister).","deadline":"2026-06-19","sessions_total":3,"sessions_done":0,"complexity":"medium","priority":"normal","subtasks":[{"id":"s12","title":"Boek uitlezen","done":false},{"id":"s13","title":"Aantekeningen verwerken","done":false},{"id":"s14","title":"Verslag schrijven","done":false}],"materials":["boek 'De aanslag'"],"status":"pending","source":"magister","magister_id":"mg_006","created_at":"2026-05-24"}],"settings":{"shortlist_size":5,"session_length_min":45,"break_length_min":10,"reminder_enabled":true,"reminder_time":"18:00","magister_connected":false,"magister_email":null,"capacity_week":{"monday":60,"tuesday":60,"wednesday":60,"thursday":60,"friday":60,"saturday":120,"sunday":0},"capacity_overrides":{}},"sessions_log":[{"task_id":"t1","date":"2026-05-22"}],"study_days":["2026-05-19","2026-05-20","2026-05-21","2026-05-22","2026-05-23"]};
 
 function loadData() {
   const raw = localStorage.getItem(APP_KEY);
@@ -172,6 +194,7 @@ async function initData() {
         localStorage.removeItem('flowz_pending_name');
         pushCloudData(cloud);
       }
+      _migrateSettingsIfNeeded(cloud);
       localStorage.setItem(APP_KEY, JSON.stringify(cloud));
       _resetRecurringTasksIfNewDay(cloud);
       return cloud;
@@ -192,11 +215,13 @@ async function initData() {
   }
 
   // Local data exists — sync with cloud
+  _migrateSettingsIfNeeded(local);
   const cloud = await fetchCloudData();
   if (cloud && (cloud._version || 0) >= DATA_VERSION) {
     const cloudTs = cloud._updated_at || 0;
     const localTs = local._updated_at || 0;
     if (cloudTs > localTs) {
+      _migrateSettingsIfNeeded(cloud);
       localStorage.setItem(APP_KEY, JSON.stringify(cloud));
       _resetRecurringTasksIfNewDay(cloud);
       return cloud;
@@ -261,39 +286,96 @@ function taskTypeBadge(type) {
   return `<span class="text-xs ${cls} px-1.5 py-0.5 rounded font-medium flex-shrink-0">${type}</span>`;
 }
 
+// ── Capacity helpers ──────────────────────────────────────────────────────────
+
+const _DAY_KEYS = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+
+function getCapacityForDate(settings, date) {
+  const dateStr = getDayKey(date);
+  const overrides = settings?.capacity_overrides || {};
+  if (dateStr in overrides) return overrides[dateStr];
+  const dayKey = _DAY_KEYS[date.getDay()];
+  const week = settings?.capacity_week || {};
+  return week[dayKey] ?? 60;
+}
+
+const _LOOKAHEAD_DAYS = 14;
+
+// Returns {thresholdRed, thresholdGreen} — same algorithm as native zoneCalculator.ts
+function calculateZones(tasks, settings, date) {
+  const today = new Date(date);
+  today.setHours(0, 0, 0, 0);
+  const todayStr = getDayKey(today);
+
+  const capacityMap = {};
+  for (let i = 0; i <= _LOOKAHEAD_DAYS; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() + i);
+    const key = getDayKey(d);
+    capacityMap[key] = getCapacityForDate(settings, d);
+  }
+
+  const pending = tasks.filter(t => t.status !== 'done' && t.deadline && !t.recurring);
+  let thresholdRed = 0;
+
+  for (const task of pending) {
+    const remaining = Math.max(0, task.sessions_total - task.sessions_done);
+    if (remaining === 0) continue;
+    const deadline = new Date(task.deadline + 'T00:00:00');
+    const daysUntil = Math.ceil((deadline.getTime() - today.getTime()) / 86400000);
+    if (daysUntil < 0) continue;
+    const sessionMinutes = task.session_duration_min ?? settings.session_length_min ?? 45;
+
+    let availableDays = 0;
+    for (let i = 0; i <= Math.min(daysUntil, _LOOKAHEAD_DAYS); i++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() + i);
+      if ((capacityMap[getDayKey(d)] ?? 0) > 0) availableDays++;
+    }
+
+    if (availableDays === 0) {
+      thresholdRed += remaining * sessionMinutes;
+      continue;
+    }
+
+    const sessionsPerDay = remaining / availableDays;
+    if ((capacityMap[todayStr] ?? 0) > 0) {
+      thresholdRed += Math.ceil(sessionsPerDay) * sessionMinutes;
+    }
+  }
+
+  return { thresholdRed, thresholdGreen: Math.round(thresholdRed * 1.25) };
+}
+
+function getSliderFeedback(zone, thresholdRed) {
+  if (thresholdRed === 0) return 'Je hebt vandaag geen dringende deadlines. Geniet van de ruimte!';
+  const hours = Math.ceil(thresholdRed / 60);
+  if (zone === 'red') return `Je moet vandaag minimaal ${hours} uur werken om je deadlines te halen.`;
+  if (zone === 'orange') return 'Je ligt perfect op schema voor je taken.';
+  return 'Je werkt alvast vooruit — je bouwt een buffer op.';
+}
+
 // ── Daily Plan ────────────────────────────────────────────────────────────────
 // Distributes sessions across available days respecting per-task deadlines.
-// Time budget (from energy check-in): low=60min, normal=150min, high=unlimited.
+// Time budget (minutes from check-in slider). Forced tasks always included.
 // Session duration is per-task (task.session_duration_min) or falls back to
-// settings.session_length_min. Forced tasks (can't skip today) always included.
+// settings.session_length_min.
 
 function isTodayAvailable(settings) {
-  const todayStr = getDayKey();
-  const d = new Date(todayStr + 'T12:00:00');
-  const dayName = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'][d.getDay()];
-  const recurringBlocked = settings?.blocked_days?.recurring || ['saturday', 'sunday'];
-  const specific         = settings?.blocked_days?.specific   || [];
-  return !recurringBlocked.includes(dayName) && !specific.includes(todayStr);
+  return getCapacityForDate(settings, new Date()) > 0;
 }
 
 function getTaskSessionDuration(task, settings) {
   return task.session_duration_min || settings?.session_length_min || 25;
 }
 
-function buildDailyPlan(tasks, settings, energy, time) {
+function buildDailyPlan(tasks, settings, energy, minutes) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const todayStr = today.toISOString().slice(0, 10);
-
-  const blocked          = (settings?.blocked_days?.specific)   || [];
-  const recurringBlocked = (settings?.blocked_days?.recurring)  || ['saturday', 'sunday'];
-  const dayNames = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+  const todayStr = getDayKey(today);
 
   function isAvailable(dateStr) {
-    const d = new Date(dateStr + 'T00:00:00');
-    if (recurringBlocked.includes(dayNames[d.getDay()])) return false;
-    if (blocked.includes(dateStr)) return false;
-    return true;
+    return getCapacityForDate(settings, new Date(dateStr + 'T00:00:00')) > 0;
   }
 
   function availableDaysUntil(deadline) {
@@ -301,13 +383,14 @@ function buildDailyPlan(tasks, settings, energy, time) {
     const cur = new Date(today);
     const due = new Date(deadline + 'T00:00:00');
     while (cur < due) {
-      if (isAvailable(cur.toISOString().slice(0, 10))) count++;
+      if (isAvailable(getDayKey(cur))) count++;
       cur.setDate(cur.getDate() + 1);
     }
     return count;
   }
 
   const todayAvailable = isAvailable(todayStr);
+  const budget = typeof minutes === 'number' ? minutes : 150;
 
   // Recurring tasks that are due today and not yet completed
   const recurringToday = todayAvailable
@@ -325,17 +408,12 @@ function buildDailyPlan(tasks, settings, energy, time) {
 
   scored.sort((a, b) => {
     if (Math.abs(b.pressure - a.pressure) > 0.0001) return b.pressure - a.pressure;
-    // Tiebreak: soonest deadline first
     return a.deadline < b.deadline ? -1 : 1;
   });
 
-  if (scored.length === 0 && recurringToday.length === 0 || !todayAvailable) {
+  if ((scored.length === 0 && recurringToday.length === 0) || !todayAvailable) {
     return { required: [...recurringToday], optional: null, dailyTarget: recurringToday.length, todayAvailable };
   }
-
-  // Time budget in minutes: low < 1h, normal 1–2.5h, high > 2.5h (unlimited)
-  const TIME_BUDGET = { low: 60, normal: 150, high: 360 };
-  const budget = TIME_BUDGET[time] || 150;
 
   // Build required list: forced tasks always included, then fill up to budget
   const required = [...recurringToday];
@@ -488,27 +566,34 @@ function getTodayCheckin() {
   const parsed = JSON.parse(stored);
   const today = new Date().toISOString().slice(0, 10);
   if (parsed.date !== today) return null;
-  return { energy: parsed.energy || null, time: parsed.time || null };
+  let minutes = parsed.minutes ?? null;
+  // Migrate old "time" level to minutes
+  if (minutes === null && parsed.time) {
+    const map = { low: 60, normal: 150, high: 300 };
+    minutes = map[parsed.time] ?? 150;
+  }
+  return { energy: parsed.energy || null, minutes };
 }
 
 function getTodayEnergy() {
   return getTodayCheckin()?.energy || null;
 }
 
-function getTodayTime() {
-  return getTodayCheckin()?.time || null;
+function getTodayMinutes() {
+  return getTodayCheckin()?.minutes ?? null;
 }
 
-function setTodayCheckin(energy, time) {
+function setTodayCheckin(energy, minutes) {
   localStorage.setItem(ENERGY_KEY, JSON.stringify({
-    energy, time,
+    energy,
+    minutes: typeof minutes === 'number' ? minutes : 150,
     date: new Date().toISOString().slice(0, 10),
   }));
 }
 
 function setTodayEnergy(energy) {
   const existing = getTodayCheckin();
-  setTodayCheckin(energy, existing?.time || null);
+  setTodayCheckin(energy, existing?.minutes ?? 150);
 }
 
 // ── Capacity Warning ─────────────────────────────────────────────────────────
@@ -523,15 +608,9 @@ function setTodayEnergy(energy) {
 function _buildCapacityHelpers(settings) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const blocked          = (settings.blocked_days && settings.blocked_days.specific)  || [];
-  const recurringBlocked = (settings.blocked_days && settings.blocked_days.recurring) || ['saturday', 'sunday'];
-  const dayNames = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
 
   function isAvailable(dateStr) {
-    const d = new Date(dateStr + 'T00:00:00');
-    if (recurringBlocked.includes(dayNames[d.getDay()])) return false;
-    if (blocked.includes(dateStr)) return false;
-    return true;
+    return getCapacityForDate(settings, new Date(dateStr + 'T00:00:00')) > 0;
   }
 
   function availableDaysUntil(deadline) {
@@ -657,15 +736,10 @@ function calcStreak(completedDays, settings) {
 // Blocked days (recurring weekdays or specific dates) are skipped — they
 // neither count nor break the streak.
 function getStreakStatus(completedDays, settings) {
-  const completed        = new Set(completedDays || []);
-  const blockedSpecific  = new Set(settings?.blocked_days?.specific  || []);
-  const recurringBlocked = new Set(settings?.blocked_days?.recurring || ['saturday', 'sunday']);
+  const completed = new Set(completedDays || []);
 
   function isBlocked(dateStr) {
-    if (blockedSpecific.has(dateStr)) return true;
-    const dow = new Date(dateStr + 'T12:00:00')
-      .toLocaleDateString('en', { weekday: 'long' }).toLowerCase();
-    return recurringBlocked.has(dow);
+    return getCapacityForDate(settings, new Date(dateStr + 'T12:00:00')) === 0;
   }
 
   const todayStr    = getDayKey();
@@ -916,7 +990,8 @@ window.FS = {
   getUrgency, urgencyLabel, formatDeadline, taskTypeBadge,
   buildDailyPlan, getTaskSessionDuration, isTodayAvailable, hasSessionToday,
   isSetupDone, markSetupDone,
-  getTodayEnergy, getTodayTime, getTodayCheckin, setTodayEnergy, setTodayCheckin,
+  getTodayEnergy, getTodayMinutes, getTodayCheckin, setTodayEnergy, setTodayCheckin,
+  getCapacityForDate, calculateZones, getSliderFeedback,
   getCapacityWarning, getCapacityPressuredTaskIds,
   getActiveSession, setActiveSession, clearActiveSession,
   getDayKey,

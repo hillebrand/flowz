@@ -10,13 +10,15 @@
   <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5', 'flowz-purple': '#2C0094', 'flowz-nav': '#C6C9FF' }, fontFamily: { karla: ['Karla', 'sans-serif'] } } } }</script>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <script src="shared/app.js?v=20"></script>
+  <script src="shared/app.js?v=21"></script>
   <script src="shared/nav.js"></script>
 </head>
 <body class="bg-gray-50 min-h-screen flex flex-col font-karla">
 
   <header class="bg-white border-b border-gray-100 flex items-center px-4 py-3 sticky top-0 z-30">
-    <button onclick="openNav()" class="text-gray-700 hover:opacity-70 w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-opacity"><svg viewBox="0 0 30 22" fill="none" class="w-6 h-5"><rect y="0" width="30" height="2.6" rx="1.3" fill="currentColor"/><rect y="9.1" width="30" height="2.6" rx="1.3" fill="currentColor"/><rect y="18.4" width="30" height="2.6" rx="1.3" fill="currentColor"/></svg></button>
+    <a href="04.1-instellingen.html" class="text-gray-700 hover:opacity-70 w-10 h-10 flex items-center justify-center rounded-xl hover:bg-gray-100 transition-opacity">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5"><path d="M15 18l-6-6 6-6"/></svg>
+    </a>
     <span class="flex-1 text-center font-bold text-gray-800">Beschikbaarheid</span>
     <div class="w-10"></div>
   </header>
@@ -27,24 +29,29 @@
     ✓ Opgeslagen
   </div>
 
-  <main class="flex-1 px-4 py-6 max-w-sm mx-auto w-full space-y-4">
+  <main class="flex-1 px-4 py-6 max-w-sm mx-auto w-full space-y-4 pb-20">
 
-    <!-- Recurring blocked days -->
+    <!-- Weekcapaciteit -->
     <div class="bg-white rounded-2xl px-5 py-5 shadow-sm border border-gray-100">
-      <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-4">Wekelijks geblokkeerde dagen</h3>
-      <p class="text-xs text-gray-400 mb-4">Tik een dag aan om hem elke week te blokkeren.</p>
-      <div id="weekday-toggles" class="grid grid-cols-7 gap-1.5"></div>
+      <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Weekcapaciteit</h3>
+      <p class="text-xs text-gray-400 mb-5">Hoeveel minuten studeer je standaard op deze dag?</p>
+      <div id="weekday-steppers" class="grid grid-cols-7 gap-1"></div>
     </div>
 
-    <!-- Specific dates -->
+    <!-- Datum-overrides kalender -->
     <div class="bg-white rounded-2xl px-5 py-5 shadow-sm border border-gray-100">
-      <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-4">Eenmalige geblokkeerde datums</h3>
-      <div class="flex items-center justify-between mb-4">
+      <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Datum-overrides</h3>
+      <p class="text-xs text-gray-400 mb-4">Tik een datum aan om de beschikbare tijd tijdelijk aan te passen of de dag te blokkeren.</p>
+
+      <!-- Month navigation -->
+      <div class="flex items-center justify-between mb-3">
         <button onclick="prevMonth()" class="text-gray-400 hover:text-gray-700 w-8 h-8 flex items-center justify-center rounded-xl hover:bg-gray-100">‹</button>
         <span id="cal-month-label" class="text-sm font-semibold text-gray-800"></span>
         <button onclick="nextMonth()" class="text-gray-400 hover:text-gray-700 w-8 h-8 flex items-center justify-center rounded-xl hover:bg-gray-100">›</button>
       </div>
-      <div class="grid grid-cols-7 gap-1 mb-2">
+
+      <!-- Day headers -->
+      <div class="grid grid-cols-7 gap-1 mb-1">
         <div class="text-center text-xs text-gray-400 py-1">Ma</div>
         <div class="text-center text-xs text-gray-400 py-1">Di</div>
         <div class="text-center text-xs text-gray-400 py-1">Wo</div>
@@ -55,68 +62,129 @@
       </div>
       <div id="cal-grid" class="grid grid-cols-7 gap-1"></div>
 
-      <button onclick="clearSpecificDates()"
-              class="mt-4 w-full text-xs text-gray-400 hover:text-red-500 transition-colors py-2 border border-gray-200 rounded-xl hover:border-red-200">
-        Alle eenmalige datums wissen
-      </button>
+      <div id="override-count-row" class="hidden mt-4">
+        <button onclick="clearAllOverrides()"
+                class="w-full text-xs text-gray-400 hover:text-red-500 transition-colors py-2 border border-gray-200 rounded-xl hover:border-red-200">
+          <span id="override-count-label"></span>
+        </button>
+      </div>
     </div>
 
   </main>
 
+  <!-- Override bottom sheet (modal) -->
+  <div id="override-modal" class="hidden fixed inset-0 z-50 flex flex-col justify-end">
+    <div class="absolute inset-0 bg-black/30" onclick="closeModal()"></div>
+    <div class="relative bg-white rounded-t-3xl px-6 pb-10 pt-6 max-w-sm mx-auto w-full">
+      <p id="modal-title" class="text-base font-bold text-gray-900 mb-5"></p>
+
+      <!-- Stepper -->
+      <div class="flex items-center justify-center gap-6 mb-5">
+        <button onclick="changeModalMinutes(-15)"
+                class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 text-lg hover:bg-gray-200 transition-colors">−</button>
+        <span id="modal-display" class="w-24 text-center text-xl font-semibold text-gray-900"></span>
+        <button onclick="changeModalMinutes(15)"
+                class="w-10 h-10 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 text-lg hover:bg-gray-200 transition-colors">+</button>
+      </div>
+
+      <!-- Block shortcut -->
+      <button onclick="setModalMinutes(0)"
+              class="w-full text-sm text-gray-500 border border-gray-200 py-3 rounded-xl hover:bg-gray-50 transition-colors mb-3">
+        Blokkeren (0 min)
+      </button>
+
+      <!-- Save -->
+      <button onclick="saveOverride()"
+              class="w-full bg-primary hover:bg-primary-dark text-white font-semibold py-4 rounded-2xl transition-all">
+        Opslaan
+      </button>
+    </div>
+  </div>
+
   <script>
-    const DAY_NAMES = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
-    const DAY_LABELS = ['Ma','Di','Wo','Do','Vr','Za','Zo']; // Mon-first
-    const DAY_ORDER = [1,2,3,4,5,6,0]; // Mon-first indices into DAY_NAMES
+    injectNav('availability');
+
+    const DAY_KEYS   = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+    const DAY_SHORT  = ['Ma','Di','Wo','Do','Vr','Za','Zo'];
+    const MONTH_NL   = ['Januari','Februari','Maart','April','Mei','Juni','Juli','Augustus','September','Oktober','November','December'];
 
     let calYear, calMonth;
     let settings = null;
+    let _modalDate = null;
+    let _modalMinutes = 60;
+
+    function displayMinutes(min) {
+      if (min === 0) return 'Vrij';
+      const h = Math.floor(min / 60);
+      const m = min % 60;
+      if (h === 0) return `${m}m`;
+      if (m === 0) return `${h}u`;
+      return `${h}u${m}`;
+    }
+
+    function displayMinutesFull(min) {
+      if (min === 0) return 'Blokkeren';
+      const h = Math.floor(min / 60);
+      const m = min % 60;
+      if (h === 0) return `${m} min`;
+      if (m === 0) return `${h} uur`;
+      return `${h} uur ${m} min`;
+    }
 
     (async function() {
       await FS.initData();
-      injectNav('availability');
       const data = FS.loadData();
       settings = data.settings || {};
-      if (!settings.blocked_days) settings.blocked_days = { recurring: ['saturday','sunday'], specific: [] };
-      if (!settings.blocked_days.recurring) settings.blocked_days.recurring = ['saturday','sunday'];
-      if (!settings.blocked_days.specific) settings.blocked_days.specific = [];
+
+      // Ensure capacity fields exist
+      if (!settings.capacity_week) {
+        settings.capacity_week = { monday:60, tuesday:60, wednesday:60, thursday:60, friday:60, saturday:120, sunday:0 };
+      }
+      if (!settings.capacity_overrides) settings.capacity_overrides = {};
 
       const now = new Date();
-      calYear = now.getFullYear();
+      calYear  = now.getFullYear();
       calMonth = now.getMonth();
 
-      renderWeekdays();
+      renderWeekdaySteppers();
       renderCalendar();
     })();
 
-    function renderWeekdays() {
-      const container = document.getElementById('weekday-toggles');
-      container.innerHTML = DAY_ORDER.map((dayIdx, i) => {
-        const dayName = DAY_NAMES[dayIdx];
-        const blocked = settings.blocked_days.recurring.includes(dayName);
-        return `<button onclick="toggleWeekday('${dayName}')" id="wd-${dayName}"
-                        class="aspect-square flex items-center justify-center text-xs font-medium rounded-xl transition-all
-                          ${blocked ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-indigo-50'}">
-                  ${DAY_LABELS[i]}
-                </button>`;
+    function renderWeekdaySteppers() {
+      const container = document.getElementById('weekday-steppers');
+      container.innerHTML = DAY_KEYS.map((key, i) => {
+        const val = settings.capacity_week[key] ?? 60;
+        const isFree = val === 0;
+        return `
+          <div class="flex flex-col items-center gap-1">
+            <span class="text-xs text-gray-400">${DAY_SHORT[i]}</span>
+            <button onclick="adjustWeekDay('${key}', 15)"
+                    class="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-indigo-100 hover:text-primary transition-colors text-sm">+</button>
+            <span class="text-xs font-semibold ${isFree ? 'text-gray-300' : 'text-gray-800'} text-center leading-tight min-h-[28px] flex items-center">${displayMinutes(val)}</span>
+            <button onclick="adjustWeekDay('${key}', -15)"
+                    class="w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 text-gray-600 hover:bg-indigo-100 hover:text-primary transition-colors text-sm">−</button>
+          </div>`;
       }).join('');
     }
 
-    function toggleWeekday(dayName) {
-      const idx = settings.blocked_days.recurring.indexOf(dayName);
-      if (idx === -1) settings.blocked_days.recurring.push(dayName);
-      else settings.blocked_days.recurring.splice(idx, 1);
+    function adjustWeekDay(key, delta) {
+      const current = settings.capacity_week[key] ?? 60;
+      settings.capacity_week[key] = Math.max(0, Math.min(300, current + delta));
       save();
-      renderWeekdays();
+      renderWeekdaySteppers();
+      renderCalendar(); // update calendar colors too
     }
 
     function renderCalendar() {
-      const firstDay = new Date(calYear, calMonth, 1);
-      const lastDay = new Date(calYear, calMonth + 1, 0);
-      const today = new Date().toISOString().slice(0,10);
+      const firstDay  = new Date(calYear, calMonth, 1);
+      const lastDay   = new Date(calYear, calMonth + 1, 0);
+      const today     = FS.getDayKey();
+      const overrides = settings.capacity_overrides || {};
 
       document.getElementById('cal-month-label').textContent =
-        firstDay.toLocaleDateString('nl', { month: 'long', year: 'numeric' });
+        `${MONTH_NL[calMonth]} ${calYear}`;
 
+      // Monday-first offset
       let startDow = firstDay.getDay();
       startDow = startDow === 0 ? 6 : startDow - 1;
 
@@ -124,33 +192,98 @@
       for (let i = 0; i < startDow; i++) html += '<div></div>';
 
       for (let d = 1; d <= lastDay.getDate(); d++) {
-        const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-        const isPast = dateStr < today;
-        const isToday = dateStr === today;
-        const isBlocked = settings.blocked_days.specific.includes(dateStr);
+        const dateStr  = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+        const isPast   = dateStr < today;
+        const isToday  = dateStr === today;
+        const hasOvr   = dateStr in overrides;
+        const ovrVal   = overrides[dateStr];
+        const isBlocked = hasOvr && ovrVal === 0;
 
-        html += `<button onclick="${isPast ? '' : `toggleDate('${dateStr}')`}"
-                         class="aspect-square flex items-center justify-center text-xs rounded-xl transition-all
-                           ${isPast ? 'text-gray-300 cursor-default' : 'cursor-pointer'}
-                           ${isToday && !isBlocked ? 'ring-2 ring-primary ring-offset-1 font-bold text-primary' : ''}
-                           ${isBlocked ? 'bg-primary text-white font-medium' : (!isPast ? 'hover:bg-indigo-50 text-gray-700' : '')}">
-                   ${d}
-                 </button>`;
+        // Determine style
+        let bg = '', textCls = 'text-gray-700';
+        if (isBlocked)     { bg = 'background:#e5e7eb'; textCls = 'text-gray-400'; }
+        else if (hasOvr)   { bg = 'background:#ede9fe'; textCls = 'text-purple-700'; }
+
+        const ring   = isToday ? 'box-shadow:0 0 0 2px #6366f1;' : '';
+        const cursor = isPast  ? 'cursor-default' : 'cursor-pointer';
+        const click  = isPast  ? '' : `onclick="openModal('${dateStr}')"`;
+
+        // Sub-label for overrides
+        let sub = '';
+        if (!isPast && hasOvr) {
+          sub = `<span style="font-size:8px;display:block;line-height:1;color:${isBlocked?'#9ca3af':'#7c3aed'};margin-top:1px">${isBlocked ? 'vrij' : displayMinutes(ovrVal)}</span>`;
+        }
+
+        const pastStyle = isPast ? 'opacity:0.35;' : '';
+
+        html += `
+          <button ${click}
+                  class="aspect-square flex flex-col items-center justify-center text-xs font-medium rounded-xl transition-all ${cursor} ${textCls} hover:opacity-80"
+                  style="${pastStyle}${bg ? bg+';' : ''}${ring}padding:2px">
+            <span>${d}</span>${sub}
+          </button>`;
       }
+
       document.getElementById('cal-grid').innerHTML = html;
+
+      const count = Object.keys(overrides).length;
+      const row = document.getElementById('override-count-row');
+      if (count > 0) {
+        row.classList.remove('hidden');
+        document.getElementById('override-count-label').textContent = `Alle ${count} datum-overrides wissen`;
+      } else {
+        row.classList.add('hidden');
+      }
     }
 
-    function toggleDate(dateStr) {
-      const idx = settings.blocked_days.specific.indexOf(dateStr);
-      if (idx === -1) settings.blocked_days.specific.push(dateStr);
-      else settings.blocked_days.specific.splice(idx, 1);
+    function openModal(dateStr) {
+      _modalDate = dateStr;
+      const overrides = settings.capacity_overrides || {};
+      const hasOvr = dateStr in overrides;
+      const d = new Date(dateStr + 'T00:00:00');
+      const dayKey = DAY_KEYS[(d.getDay() + 6) % 7];
+      const fallback = settings.capacity_week[dayKey] ?? 60;
+      _modalMinutes = hasOvr ? overrides[dateStr] : fallback;
+
+      const [yr, mo, dy] = dateStr.split('-');
+      document.getElementById('modal-title').textContent =
+        `Hoeveel minuten op ${parseInt(dy, 10)} ${MONTH_NL[parseInt(mo,10)-1]}?`;
+      updateModalDisplay();
+      document.getElementById('override-modal').classList.remove('hidden');
+    }
+
+    function closeModal() {
+      document.getElementById('override-modal').classList.add('hidden');
+      _modalDate = null;
+    }
+
+    function updateModalDisplay() {
+      document.getElementById('modal-display').textContent = displayMinutesFull(_modalMinutes);
+    }
+
+    function changeModalMinutes(delta) {
+      _modalMinutes = Math.max(0, Math.min(300, _modalMinutes + delta));
+      updateModalDisplay();
+    }
+
+    function setModalMinutes(val) {
+      _modalMinutes = val;
+      updateModalDisplay();
+    }
+
+    function saveOverride() {
+      if (!_modalDate) return;
+      if (!settings.capacity_overrides) settings.capacity_overrides = {};
+      settings.capacity_overrides[_modalDate] = _modalMinutes;
       save();
       renderCalendar();
+      closeModal();
     }
 
-    function clearSpecificDates() {
-      if (!confirm(`Alle ${settings.blocked_days.specific.length} eenmalige datums verwijderen?`)) return;
-      settings.blocked_days.specific = [];
+    function clearAllOverrides() {
+      const count = Object.keys(settings.capacity_overrides || {}).length;
+      if (!confirm(`Alle ${count} datum-overrides verwijderen?`)) return;
+      settings.capacity_overrides = {};
       save();
       renderCalendar();
     }
@@ -160,6 +293,7 @@
       if (calMonth < 0) { calMonth = 11; calYear--; }
       renderCalendar();
     }
+
     function nextMonth() {
       calMonth++;
       if (calMonth > 11) { calMonth = 0; calYear++; }
@@ -169,13 +303,21 @@
     function save() {
       const data = FS.loadData();
       data.settings = data.settings || {};
-      data.settings.blocked_days = settings.blocked_days;
-      FS.saveData(data);
+      data.settings.capacity_week      = settings.capacity_week;
+      data.settings.capacity_overrides = settings.capacity_overrides;
+      data._updated_at = Date.now();
+      localStorage.setItem('flowz_data', JSON.stringify(data));
+      FS.pushCloudData(data);
       localStorage.removeItem('fs_daily_plan');
+
       const toast = document.getElementById('save-toast');
       toast.classList.remove('opacity-0');
       toast.classList.add('opacity-100');
-      setTimeout(() => { toast.classList.remove('opacity-100'); toast.classList.add('opacity-0'); }, 1500);
+      toast.style.pointerEvents = 'none';
+      setTimeout(() => {
+        toast.classList.remove('opacity-100');
+        toast.classList.add('opacity-0');
+      }, 1500);
     }
   </script>
 </body>

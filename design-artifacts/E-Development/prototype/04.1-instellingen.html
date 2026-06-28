@@ -10,7 +10,7 @@
   <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5', 'flowz-purple': '#2C0094', 'flowz-nav': '#C6C9FF' }, fontFamily: { karla: ['Karla', 'sans-serif'] } } } }</script>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <script src="shared/app.js?v=20"></script>
+  <script src="shared/app.js?v=21"></script>
   <script src="shared/nav.js"></script>
 </head>
 <body class="bg-gray-50 min-h-screen flex flex-col font-karla">
@@ -125,6 +125,16 @@
         </button>
       </div>
     </div>
+
+    <!-- Section: Beschikbaarheid -->
+    <a href="04.2-beschikbaarheid.html"
+       class="bg-white rounded-2xl px-5 py-4 shadow-sm border border-gray-100 flex items-center justify-between hover:bg-gray-50 transition-colors">
+      <div>
+        <h3 class="text-sm font-semibold text-gray-800">Beschikbaarheid &amp; capaciteit</h3>
+        <p class="text-xs text-gray-400 mt-0.5">Weekschema en datum-overrides</p>
+      </div>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 text-gray-400"><path d="M9 18l6-6-6-6"/></svg>
+    </a>
 
     <!-- Save button -->
     <button id="instellingen-acties-opslaan-knop"

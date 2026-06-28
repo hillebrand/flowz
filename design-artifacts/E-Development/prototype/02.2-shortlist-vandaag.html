@@ -10,7 +10,7 @@
   <script>tailwind.config = { theme: { extend: { colors: { primary: '#6366f1', 'primary-dark': '#4f46e5', 'flowz-purple': '#2C0094', 'flowz-nav': '#C6C9FF' }, fontFamily: { karla: ['Karla', 'sans-serif'] } } } }</script>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icon-192.png">
-  <script src="shared/app.js?v=20"></script>
+  <script src="shared/app.js?v=21"></script>
   <script src="shared/modal.js"></script>
   <script src="shared/nav.js"></script>
 </head>
@@ -97,11 +97,15 @@
       normal: { label: 'Normaal', badgeClass: 'bg-green-100 text-green-600' },
       high:   { label: 'Hoog',    badgeClass: 'bg-yellow-100 text-yellow-700' },
     };
-    const TIME_CONFIG = {
-      low:    { label: 'Weinig tijd',  badgeClass: 'bg-orange-100 text-orange-600' },
-      normal: { label: 'Normaal',      badgeClass: 'bg-gray-100 text-gray-600' },
-      high:   { label: 'Veel tijd',    badgeClass: 'bg-purple-100 text-purple-600' },
-    };
+
+    function minutesToLabel(min) {
+      if (!min && min !== 0) return 'Onbekend';
+      const h = Math.floor(min / 60);
+      const m = min % 60;
+      if (h === 0) return `${m} min`;
+      if (m === 0) return `${h} uur`;
+      return `${h} uur ${m} min`;
+    }
 
     let _data = null;
     let _plan = null;
@@ -111,21 +115,18 @@
     (async function() {
       _data = await FS.initData();
 
-      // Redirect to check-in if no energy/time set today
+      // Redirect to check-in if no energy/minutes set today
       const checkin = FS.getTodayCheckin();
-      if (!checkin?.energy || !checkin?.time) { window.location.href = '02.1-energie-check-in.html'; return; }
-      const energy = checkin.energy;
-      const time   = checkin.time;
+      if (!checkin?.energy || checkin?.minutes == null) { window.location.href = '02.1-energie-check-in.html'; return; }
+      const energy  = checkin.energy;
+      const minutes = checkin.minutes;
 
-      // Day header
-      const now = new Date();
-      // badges
-      const tc = TIME_CONFIG[time] || TIME_CONFIG.normal;
+      // Day header badges
       const ec = ENERGY_CONFIG[energy] || ENERGY_CONFIG.normal;
       const statusEl = document.getElementById('checkin-status');
       const _clock = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" class="w-3.5 h-3.5 inline-block mr-0.5 -mt-px"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>`;
       const _bolt  = `<svg viewBox="0 0 24 24" fill="currentColor" class="w-3.5 h-3.5 inline-block mr-0.5 -mt-px"><path d="M13 2L4 14h7l-1 8 10-12h-7l1-8z"/></svg>`;
-      statusEl.innerHTML = `${_clock}${tc.label}&ensp;·&ensp;${_bolt}${ec.label}`;
+      statusEl.innerHTML = `${_clock}${minutesToLabel(minutes)}&ensp;·&ensp;${_bolt}${ec.label}`;
 
       // IDs of tasks with capacity pressure (for orange card highlight)
       _pressuredIds = new Set(FS.getCapacityPressuredTaskIds(_data.tasks, _data.settings || {}));
@@ -134,7 +135,7 @@
       // current settings — recurring blocks may have changed since the plan was cached.
       const _currentlyAvailable = FS.isTodayAvailable(_data.settings || {});
       _plan = FS.loadTodayPlan(_data.tasks)
-           || FS.buildDailyPlan(_data.tasks, _data.settings || {}, energy, time);
+           || FS.buildDailyPlan(_data.tasks, _data.settings || {}, energy, minutes);
       if (_plan.todayAvailable !== _currentlyAvailable) {
         _plan = FS.buildDailyPlan(_data.tasks, _data.settings || {}, energy, time);
       }
@@ -162,9 +163,10 @@
 
       // Show time warning when forced tasks exceed the chosen time budget
       if (_plan.timeOverBudget) {
-        const budgetLabel = { low: 'een uur', normal: '2,5 uur', high: '6 uur' }[checkin.time] || `${_plan.timeBudget} minuten`;
+        const budgetLabel = minutesToLabel(minutes);
+        const plannedH = Math.round(_plan.minutesPlanned / 60 * 10) / 10;
         document.getElementById('time-warning-text').textContent =
-          `Je huiswerk vraagt vandaag meer tijd dan je beschikbaar hebt. Je hebt aangegeven ${budgetLabel} te hebben, maar het huiswerk kost nog zo'n ${Math.round(_plan.minutesPlanned / 60 * 10) / 10} uur. Plan extra tijd in!`;
+          `Je huiswerk vraagt vandaag meer tijd dan je beschikbaar hebt. Je hebt ${budgetLabel} aangegeven, maar het huiswerk kost nog zo'n ${plannedH} uur. Plan extra tijd in!`;
         document.getElementById('time-warning').classList.remove('hidden');
       }
 
